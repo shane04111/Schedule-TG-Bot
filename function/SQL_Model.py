@@ -4,7 +4,11 @@ import os
 
 
 def CheckFile():
+<<<<<<< HEAD
     conn = sqlite3.connect('D:/Telegram_bot/EZMinder_bot-Python/data/schedule_data.db')
+=======
+    conn = sqlite3.connect('../data/schedule_data.db')
+>>>>>>> master
     cursor = conn.cursor()
     cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='schedule';")
     result = cursor.fetchone()
@@ -29,7 +33,11 @@ def CheckFile():
 
 
 def SaveData(Message: str, ChatID: int, Year: int, Month: int, Day: int, Hour: int, Minute: int):
+<<<<<<< HEAD
     conn = sqlite3.connect('data/schedule_data.db')
+=======
+    conn = sqlite3.connect('../data/schedule_data.db')
+>>>>>>> master
     cursor = conn.cursor()
 
     cursor.execute(
@@ -38,6 +46,9 @@ def SaveData(Message: str, ChatID: int, Year: int, Month: int, Day: int, Hour: i
     conn.commit()
     cursor.close()
     conn.close()
+<<<<<<< HEAD
 
 
 
+=======
+>>>>>>> master

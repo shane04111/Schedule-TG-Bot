@@ -11,6 +11,10 @@ from function.day_select import day_select
 from function.month_select import month_select
 from function.year_select import year_select
 from function.SQL_Model import SaveData, CheckFile
+<<<<<<< HEAD
+=======
+import os
+>>>>>>> master
 import json
 import threading
 import re
@@ -59,6 +63,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
 
 
 async def button(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    global get_need_data
     query = update.callback_query
     query_user_id = update.callback_query.from_user.id
     query_chat_id = update.callback_query.message.chat.id
@@ -238,8 +243,11 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
             await query.edit_message_text("請選擇要幾點提醒", reply_markup=InlineKeyboardMarkup(
                 hour_select(hour_check_need(query_get_key))))
         elif query.data == "config_true":
+<<<<<<< HEAD
             # 棄用
             # 將儲存方式由json轉至SQL lite
+=======
+>>>>>>> master
             # with open("data/schedule.json", "r") as json_file:
             #     schedule_data = json.load(json_file)
             # schedule_data["schedule"].append(get_need_data)
@@ -261,7 +269,7 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
             user_data.pop(query_get_key)
             await query.edit_message_text("已取消安排提醒\n如需設定其他提醒請再次輸入 /schedule")
     else:
-        await bot.sendMessage(query_chat_id, "按鈕已過時或無權限")
+        return
 
 
 def message_check_text(get_need_data):
@@ -344,6 +352,10 @@ def hour_check_need(user_data_key):
 #     asyncio.set_event_loop(loop)
 #     loop.run_until_complete(job_to_do())
 #     asyncio.run(job_to_do())
+<<<<<<< HEAD
+=======
+
+>>>>>>> master
 stop = False
 
 
@@ -357,8 +369,11 @@ def check():
             with open("data/schedule.json", "r") as json_file:
                 schedule_data = json.load(json_file)
             print(json.dumps(schedule_data, indent=2))
+<<<<<<< HEAD
         elif need_get == "stop":
             break
+=======
+>>>>>>> master
         else:
             print("無法讀取\n可輸入：user以及database")
         if stop:
