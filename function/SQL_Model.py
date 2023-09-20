@@ -1,4 +1,4 @@
-# from function.my_time import time_year, time_month, time_day, time_hour, time_minute
+from function.my_time import time_year, time_month, time_day, time_hour, time_minute
 import sqlite3
 import os
 
@@ -37,4 +37,16 @@ def SaveData(Message: str, ChatID: int, Year: int, Month: int, Day: int, Hour: i
         (Message, ChatID, Year, Month, Day, Hour, Minute))
     conn.commit()
     cursor.close()
+    conn.close()
+
+
+def GetData():
+    conn = sqlite3.connect('data/schedule_data.db')
+    cursor = conn.cursor()
+
+    cursor.execute("SELECT * FROM schedule WHERE Year = ? AND Month = ? AND Day = ? AND Hour = ? AND Minute = ?;",
+                   (time_year(), time_month(), time_day(), time_hour(), time_minute()))
+
+    results = cursor.fetchall()
+    print(results)
     conn.close()

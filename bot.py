@@ -8,7 +8,7 @@ from function.minute_select import minute_select, check_minute_time
 from function.day_select import day_select
 from function.month_select import month_select
 from function.year_select import year_select
-from function.SQL_Model import SaveData, CheckFile
+from function.SQL_Model import SaveData, CheckFile, GetData
 import json
 import threading
 import re
@@ -382,6 +382,7 @@ def main():
         # threading.Thread(target=run_job_thread, daemon=True).start()
         threading.Thread(target=check, daemon=True).start()
         CheckFile()
+        GetData()
         app()
     except KeyboardInterrupt:
         stop = True
