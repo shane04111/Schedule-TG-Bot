@@ -5,7 +5,7 @@ from function.my_time import time_minute, time_second
 def check_minute_time(minute):
     if minute == 0:
         return "整點"
-    if minute > 0 and minute < 10:
+    if 0 < minute < 10:
         return f"0{minute}分"
     else:
         return f"{minute}分"

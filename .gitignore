@@ -1,7 +1,9 @@
 /.vscode/
-/data/
 .idea/*
+data/schedule.json
+data/schedule_data.db
 config.json
 schedule.json
+schedule_data.db
 run.bat
 send.bat

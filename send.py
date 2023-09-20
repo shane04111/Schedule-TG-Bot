@@ -9,8 +9,9 @@ TOKEN = config["TOKEN"]
 
 bot = Bot(token=TOKEN)
 
+
 async def send():
-    with open('schedule.json', 'r') as file:
+    with open('data/schedule.json', 'r') as file:
         schedule_json_data = json.load(file)
     schedule_list = schedule_json_data["schedule"]
     for index, data in enumerate(schedule_list):
@@ -26,8 +27,10 @@ async def send():
         if now_time == user_time:
             await bot.sendMessage(user_chat_id, user_message)
 
+
 async def main():  # 将 main 函数也改成异步
     await send()  # 使用 await 来等待 send 函数完成
+
 
 if __name__ == "__main__":
     asyncio.run(main())  # 使用 asyncio.run 来运行异步代码
