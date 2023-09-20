@@ -1,0 +1,7 @@
+/.vscode/
+/data/
+.idea/*
+config.json
+schedule.json
+run.bat
+send.bat
