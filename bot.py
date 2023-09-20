@@ -1,6 +1,6 @@
 from telegram import Update, InlineKeyboardMarkup, Bot
 from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, CallbackQueryHandler, filters, ContextTypes
-from function.replay_markup import true_false_text, time_chose_data_function, TD_check, SD_check, OY_check,\
+from function.replay_markup import true_false_text, time_chose_data_function, TD_check, SD_check, OY_check, \
     ALL_check, HR_check, MIN_check, config_check, day_check, check_YMD, month_check, year_check
 from function.my_time import time_year, time_month, time_day, time_hour, time_minute, time_second
 from function.hour_select import hour_select, convert_to_chinese_time
@@ -8,15 +8,11 @@ from function.minute_select import minute_select, check_minute_time
 from function.day_select import day_select
 from function.month_select import month_select
 from function.year_select import year_select
+from function.SQL_Model import SaveData, CheckFile
+import os
 import json
 import threading
 import re
-import os
-import asyncio
-# import sqlite3
-
-# conn = sqlite3.connect('schedule_data.db')
-# cursor = conn.cursor()
 
 with open("config.json", "r") as f:
     config = json.load(f)
@@ -50,12 +46,17 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
 
 
 async def button(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    global get_need_data
     query = update.callback_query
     query_user_id = update.callback_query.from_user.id
     query_chat_id = update.callback_query.message.chat.id
     # ==========user_data===========
     query_get_key = f"{query_user_id}|{query_chat_id}"
-    get_need_data = user_data[query_get_key]
+    get_need_data = None
+    if query_get_key in user_data:
+        get_need_data = user_data[query_get_key]
+    else:
+        await bot.sendMessage(query_chat_id, "按鈕已過時或無權限")
     # ===========match==============
     day_match = re.search(r'(\d+)day', query.data)
     hour_match = re.search(r'(\d+)hour', query.data)
@@ -77,7 +78,8 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
                 "is_today": True,
                 "isOY": False
             })
-            await query.edit_message_text(f"確認選擇將日期設定為{time_year()}/{time_month()}/{time_day()}", reply_markup=TD_check)
+            await query.edit_message_text(f"確認選擇將日期設定為{time_year()}/{time_month()}/{time_day()}",
+                                          reply_markup=TD_check)
         elif query.data == "set_day":
             get_need_data.update({
                 "year": check_YMD().year,
@@ -86,7 +88,8 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
                 "is_today": False,
                 "isOY": False
             })
-            await query.edit_message_text(f"確認選擇將日期設定為{check_YMD().year}/{check_YMD().month}", reply_markup=SD_check)
+            await query.edit_message_text(f"確認選擇將日期設定為{check_YMD().year}/{check_YMD().month}",
+                                          reply_markup=SD_check)
         elif query.data == "only_year":
             get_need_data.update({
                 "year": check_YMD().year,
@@ -183,7 +186,8 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
                 set_select_hour = time_hour() + 1
             else:
                 set_select_hour = time_hour()
-            await query.edit_message_text("請選擇要幾點提醒", reply_markup=InlineKeyboardMarkup(hour_select(set_select_hour)))
+            await query.edit_message_text("請選擇要幾點提醒",
+                                          reply_markup=InlineKeyboardMarkup(hour_select(set_select_hour)))
         elif hour_match:
             get_hour = int(hour_match.group(1))
             get_need_data["hour"] = get_hour
@@ -191,7 +195,8 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         elif query.data == "HR_true":
             await query.edit_message_text("請選擇要幾分提醒", reply_markup=hour_check_button(query_get_key))
         elif query.data == "HR_false":
-            await query.edit_message_text("請選擇要幾點提醒", reply_markup=InlineKeyboardMarkup(hour_select(hour_check_need(query_get_key))))
+            await query.edit_message_text("請選擇要幾點提醒", reply_markup=InlineKeyboardMarkup(
+                hour_select(hour_check_need(query_get_key))))
         elif query.data == "HR_back":
             if get_need_data["is_today"]:
                 await query.edit_message_text(text="請選擇提醒時間", reply_markup=time_chose_data_function())
@@ -203,9 +208,12 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
                     else:
                         month_need = check_YMD().month
                         day_need = time_day() + 1
-                    await query.edit_message_text("請選擇要幾號提醒", reply_markup=day_select(time_year(), month_need, day_need))
+                    await query.edit_message_text("請選擇要幾號提醒",
+                                                  reply_markup=day_select(time_year(), month_need, day_need))
                 else:
-                    await query.edit_message_text("請選擇要幾號提醒", reply_markup=day_select(get_need_data["year"], get_need_data["month"], 1))
+                    await query.edit_message_text("請選擇要幾號提醒",
+                                                  reply_markup=day_select(get_need_data["year"], get_need_data["month"],
+                                                                          1))
         elif min_match:
             get_min = int(min_match.group(1))
             get_need_data["minute"] = get_min
@@ -215,13 +223,22 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         elif query.data == "MIN_false":
             await query.edit_message_text("請選擇要幾分提醒", reply_markup=hour_check_button(query_get_key))
         elif query.data == "MIN_back":
-            await query.edit_message_text("請選擇要幾點提醒", reply_markup=InlineKeyboardMarkup(hour_select(hour_check_need(query_get_key))))
+            await query.edit_message_text("請選擇要幾點提醒", reply_markup=InlineKeyboardMarkup(
+                hour_select(hour_check_need(query_get_key))))
         elif query.data == "config_true":
-            with open("schedule.json", "r") as json_file:
-                schedule_data = json.load(json_file)
-            schedule_data["schedule"].append(get_need_data)
-            with open("schedule.json", "w") as json_file:
-                json.dump(schedule_data, json_file)
+            # with open("data/schedule.json", "r") as json_file:
+            #     schedule_data = json.load(json_file)
+            # schedule_data["schedule"].append(get_need_data)
+            # with open("data/schedule.json", "w") as json_file:
+            #     json.dump(schedule_data, json_file)
+            text = get_need_data["text"]
+            chatid = get_need_data["chat_id"]
+            user_year = get_need_data["year"]
+            user_month = get_need_data["month"]
+            user_day = get_need_data["day"]
+            user_hour = get_need_data["hour"]
+            user_minute = get_need_data["minute"]
+            SaveData(text, chatid, user_year, user_month, user_day, user_hour, user_minute)
             user_data.pop(query_get_key)
             await query.edit_message_text("已成功安排提醒\n如需設定其他提醒請再次輸入 /schedule")
         elif query.data == "config_false":
@@ -230,7 +247,7 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
             user_data.pop(query_get_key)
             await query.edit_message_text("已取消安排提醒\n如需設定其他提醒請再次輸入 /schedule")
     else:
-        await bot.sendMessage(query_chat_id, "按鈕已過時或無權限")
+        return
 
 
 def message_check_text(get_need_data):
@@ -242,7 +259,7 @@ def message_check_text(get_need_data):
 def minute_to_chinese(minute):
     if minute == 0:
         return "整"
-    if minute > 0 and minute < 10:
+    if 0 < minute < 10:
         return f"0{minute}分"
     else:
         return f"{minute}分"
@@ -274,62 +291,59 @@ def hour_check_need(user_data_key):
         return set_select_hour
 
 
+# 棄用
+# async def job_to_do():
+#     global stop
+#     while True:
+#         if time_second() == 0:
+#             indices_del = []
+#             with open('data/schedule.json', 'r') as file:
+#                 schedule_json_data = json.load(file)
+#             schedule_list = schedule_json_data["schedule"]
+#             for index, data in enumerate(schedule_list):
+#                 user_message = data["text"]
+#                 user_chat_id = data["chat_id"]
+#                 user_year = data["year"]
+#                 user_month = data["month"]
+#                 user_day = data["day"]
+#                 user_hour = data["hour"]
+#                 user_minute = data["minute"]
+#                 now_time = f"{time_year()}/{time_month()}/{time_day()}-{time_hour()}:{time_minute()}"
+#                 user_time = f"{user_year}/{user_month}/{user_day}-{user_hour}:{user_minute}"
+#                 if now_time == user_time:
+#                     await bot.sendMessage(user_chat_id, user_message)
+#                     indices_del.append(index)
+#                 if now_time > user_time:
+#                     indices_del.append(index)
+#             for index in reversed(indices_del):
+#                 del schedule_list[index]
+#                 with open('data/schedule.json', 'w') as del_file:
+#                     json.dump(schedule_json_data, del_file, indent=2)
+#         await asyncio.sleep(1)
+#         if stop:
+#             break
+
+
+# 棄用
+# def run_job_thread():
+#     loop = asyncio.new_event_loop()
+#     asyncio.set_event_loop(loop)
+#     loop.run_until_complete(job_to_do())
+#     asyncio.run(job_to_do())
+
 stop = False
-
-# 棄用
-async def job_to_do():
-    global stop
-    while True:
-        if time_second() == 0:
-            indices_del = []
-            with open('schedule.json', 'r') as file:
-                schedule_json_data = json.load(file)
-            schedule_list = schedule_json_data["schedule"]
-            for index, data in enumerate(schedule_list):
-                user_message = data["text"]
-                user_chat_id = data["chat_id"]
-                user_year = data["year"]
-                user_month = data["month"]
-                user_day = data["day"]
-                user_hour = data["hour"]
-                user_minute = data["minute"]
-                now_time = f"{time_year()}/{time_month()}/{time_day()}-{time_hour()}:{time_minute()}"
-                user_time = f"{user_year}/{user_month}/{user_day}-{user_hour}:{user_minute}"
-                if now_time == user_time:
-                    await bot.sendMessage(user_chat_id, user_message)
-                    indices_del.append(index)
-                if now_time > user_time:
-                    indices_del.append(index)
-            for index in reversed(indices_del):
-                del schedule_list[index]
-                with open('schedule.json', 'w') as del_file:
-                    json.dump(schedule_json_data, del_file, indent=2)
-        await asyncio.sleep(1)
-        if stop:
-            break
-
-# 棄用
-def run_job_thread():
-    loop = asyncio.new_event_loop()
-    asyncio.set_event_loop(loop)
-    loop.run_until_complete(job_to_do())
-    # asyncio.run(job_to_do())
 
 
 def check():
+    global stop
     while True:
         need_get = input("請輸入需要讀取的資料\n")
         if need_get == "user":
             print("user_data", json.dumps(user_data, indent=2))
         elif need_get == "database":
-            with open("schedule.json", "r") as json_file:
+            with open("data/schedule.json", "r") as json_file:
                 schedule_data = json.load(json_file)
             print(json.dumps(schedule_data, indent=2))
-        elif need_get == "stop":
-            global stop
-            stop = True
-            print("正在關閉機器人...\n")
-            os._exit(0)
         else:
             print("無法讀取\n可輸入：user以及database")
         if stop:
@@ -350,6 +364,7 @@ def app():
 def main():
     global stop
     try:
+        # 已棄用，轉移至 send.py 並使用排成工具每分鐘自動運行
         # threading.Thread(target=run_job_thread, daemon=True).start()
         threading.Thread(target=check, daemon=True).start()
         app()
