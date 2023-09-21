@@ -4,14 +4,15 @@ from dotenv import load_dotenv
 import os
 import asyncio
 
-load_dotenv()
-TOKEN = os.getenv("TOKEN")
-bot = Bot(token=TOKEN)
-
 
 async def send():
-    for index in GetData():
-        await bot.sendMessage(index[1], index[0])
+    data = GetData()
+    if not data.len():
+        load_dotenv()
+        TOKEN = os.getenv("TOKEN")
+        bot = Bot(token=TOKEN)
+        for index in GetData():
+            await bot.sendMessage(index[1], index[0])
 
 
 async def main():  # 将 main 函数也改成异步

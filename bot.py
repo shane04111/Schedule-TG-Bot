@@ -1,30 +1,29 @@
 from telegram import Update, InlineKeyboardMarkup, Bot
 from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, CallbackQueryHandler, filters, ContextTypes
+from dotenv import load_dotenv
 from function.replay_markup import true_false_text, time_chose_data_function, TD_check, SD_check, OY_check, \
     ALL_check, HR_check, MIN_check, config_check, day_check, check_YMD, month_check, year_check
-from function.my_time import time_year, time_month, time_day, time_hour, time_minute
+from function.my_time import time_year, time_month, time_day, time_hour, time_minute, time_datetime
 from function.hour_select import hour_select, convert_to_chinese_time
 from function.minute_select import minute_select, check_minute_time
 from function.day_select import day_select
 from function.month_select import month_select
 from function.year_select import year_select
-from function.SQL_Model import SaveData, CheckFile, GetData, GetNotUseData
+from function.SQL_Model import SaveData, CheckFile, GetNotUseData
 import json
 import threading
 import re
 import os
-from dotenv import load_dotenv
 
 load_dotenv()
 TOKEN = os.getenv("TOKEN")
-
 bot = Bot(token=TOKEN)
 
 user_data = {}
 
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    await update.message.reply_text("歡迎使用機器人！\n/schedule 創建一個新的提醒")
+    await update.message.reply_text("歡迎使用機器人！\n/schedule 創建一個新的提醒 可以簡寫為/s")
 
 
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -237,13 +236,6 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
             await query.edit_message_text("請選擇要幾點提醒", reply_markup=InlineKeyboardMarkup(
                 hour_select(hour_check_need(query_get_key))))
         elif query.data == "config_true":
-            # 棄用
-            # 將儲存方式由json轉至SQL lite
-            # with open("data/schedule.json", "r") as json_file:
-            #     schedule_data = json.load(json_file)
-            # schedule_data["schedule"].append(get_need_data)
-            # with open("data/schedule.json", "w") as json_file:
-            #     json.dump(schedule_data, json_file)
             text = get_need_data["text"]
             chatid = get_need_data["chat_id"]
             user_year = get_need_data["year"]
@@ -251,7 +243,8 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
             user_day = get_need_data["day"]
             user_hour = get_need_data["hour"]
             user_minute = get_need_data["minute"]
-            SaveData(text, chatid, user_year, user_month, user_day, user_hour, user_minute)
+            SaveData(text, chatid, "%04d" % user_year, "%02d" % user_month, "%02d" % user_day, "%02d" % user_hour,
+                     "%02d" % user_minute)
             user_data.pop(query_get_key)
             await query.edit_message_text("已成功安排提醒\n如需設定其他提醒請再次輸入 /schedule")
         elif query.data == "config_false":
@@ -304,45 +297,6 @@ def hour_check_need(user_data_key):
         return set_select_hour
 
 
-# 棄用
-# async def job_to_do():
-#     global stop
-#     while True:
-#         if time_second() == 0:
-#             indices_del = []
-#             with open('data/schedule.json', 'r') as file:
-#                 schedule_json_data = json.load(file)
-#             schedule_list = schedule_json_data["schedule"]
-#             for index, data in enumerate(schedule_list):
-#                 user_message = data["text"]
-#                 user_chat_id = data["chat_id"]
-#                 user_year = data["year"]
-#                 user_month = data["month"]
-#                 user_day = data["day"]
-#                 user_hour = data["hour"]
-#                 user_minute = data["minute"]
-#                 now_time = f"{time_year()}/{time_month()}/{time_day()}-{time_hour()}:{time_minute()}"
-#                 user_time = f"{user_year}/{user_month}/{user_day}-{user_hour}:{user_minute}"
-#                 if now_time == user_time:
-#                     await bot.sendMessage(user_chat_id, user_message)
-#                     indices_del.append(index)
-#                 if now_time > user_time:
-#                     indices_del.append(index)
-#             for index in reversed(indices_del):
-#                 del schedule_list[index]
-#                 with open('data/schedule.json', 'w') as del_file:
-#                     json.dump(schedule_json_data, del_file, indent=2)
-#         await asyncio.sleep(1)
-#         if stop:
-#             break
-
-
-# 棄用
-# def run_job_thread():
-#     loop = asyncio.new_event_loop()
-#     asyncio.set_event_loop(loop)
-#     loop.run_until_complete(job_to_do())
-#     asyncio.run(job_to_do())
 stop = False
 
 
@@ -377,13 +331,15 @@ def app():
 def main():
     global stop
     try:
-        # 已棄用，轉移至 send.py 並使用排成工具每分鐘自動運行
-        # threading.Thread(target=run_job_thread, daemon=True).start()
         threading.Thread(target=check, daemon=True).start()
         CheckFile()
         app()
     except KeyboardInterrupt:
         stop = True
+        # print(f"[{time_datetime()}] 檢測到使用者按下ctrl+c，正在關閉機器人...")
+    except BaseException as e:
+        # 這裡處理錯誤，e是錯誤物件，包含錯誤的詳細信息
+        print(f"[{time_datetime()}] 發生了一個錯誤:", e)
 
 
 if __name__ == "__main__":
