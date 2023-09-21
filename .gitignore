@@ -2,8 +2,8 @@
 .idea/*
 data/schedule.json
 data/schedule_data.bd
-config.json
 schedule.json
 schedule_data.db
 run.bat
 send.bat
+.env

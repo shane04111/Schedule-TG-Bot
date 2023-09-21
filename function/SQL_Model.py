@@ -56,6 +56,7 @@ def GetData():
 
 
 def GetNotUseData():
+    CheckFile()
     conn = sqlite3.connect('data/schedule_data.db')
     cursor = conn.cursor()
 

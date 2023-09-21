@@ -12,10 +12,11 @@ from function.SQL_Model import SaveData, CheckFile, GetData, GetNotUseData
 import json
 import threading
 import re
+import os
+from dotenv import load_dotenv
 
-with open("config.json", "r") as f:
-    config = json.load(f)
-TOKEN = config["TOKEN"]
+load_dotenv()
+TOKEN = os.getenv("TOKEN")
 
 bot = Bot(token=TOKEN)
 
