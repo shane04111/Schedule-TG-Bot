@@ -2,14 +2,13 @@ from telegram import Update, InlineKeyboardMarkup, Bot
 from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, CallbackQueryHandler, filters, ContextTypes
 from function.replay_markup import true_false_text, time_chose_data_function, TD_check, SD_check, OY_check, \
     ALL_check, HR_check, MIN_check, config_check, day_check, check_YMD, month_check, year_check
-from function.my_time import time_year, time_month, time_day, time_hour, time_minute, time_second
+from function.my_time import time_year, time_month, time_day, time_hour, time_minute
 from function.hour_select import hour_select, convert_to_chinese_time
 from function.minute_select import minute_select, check_minute_time
 from function.day_select import day_select
 from function.month_select import month_select
 from function.year_select import year_select
-from function.SQL_Model import SaveData, CheckFile
-import os
+from function.SQL_Model import SaveData, CheckFile, GetData, GetNotUseData
 import json
 import threading
 import re
@@ -43,10 +42,21 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
             }
 
             await update.message.reply_text(f"請確認提醒事項：{clear_text}", reply_markup=true_false_text)
+    elif re.match(r"^/s(@EZMinder_bot)?", text):
+        clear_text = re.sub(r"/s((@EZMinder_bot)?)", "", text).strip()
+        if clear_text == "":
+            await update.message.reply_text("請重新使用 /s 並在後面加上提醒事項")
+        else:
+            user_data[f"{user_id}|{chat_id}"] = {
+                "text": clear_text,
+                "user_id": user_id,
+                "chat_id": chat_id
+            }
+
+            await update.message.reply_text(f"請確認提醒事項：{clear_text}", reply_markup=true_false_text)
 
 
 async def button(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    global get_need_data
     query = update.callback_query
     query_user_id = update.callback_query.from_user.id
     query_chat_id = update.callback_query.message.chat.id
@@ -226,6 +236,8 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
             await query.edit_message_text("請選擇要幾點提醒", reply_markup=InlineKeyboardMarkup(
                 hour_select(hour_check_need(query_get_key))))
         elif query.data == "config_true":
+            # 棄用
+            # 將儲存方式由json轉至SQL lite
             # with open("data/schedule.json", "r") as json_file:
             #     schedule_data = json.load(json_file)
             # schedule_data["schedule"].append(get_need_data)
@@ -250,9 +262,9 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         return
 
 
-def message_check_text(get_need_data):
-    edit_message = f"是否選擇{get_need_data['year']}/{str(get_need_data['month']).zfill(2)}/{str(get_need_data['day']).zfill(2)} \
-        \n{convert_to_chinese_time(get_need_data['hour'])}{minute_to_chinese(get_need_data['minute'])}提醒\n提醒事項：{get_need_data['text']}"
+def message_check_text(data):
+    edit_message = f"是否選擇{data['year']}/{str(data['month']).zfill(2)}/{str(data['day']).zfill(2)} \
+        \n{convert_to_chinese_time(data['hour'])}{minute_to_chinese(data['minute'])}提醒\n提醒事項：{data['text']}"
     return edit_message
 
 
@@ -330,24 +342,24 @@ def hour_check_need(user_data_key):
 #     asyncio.set_event_loop(loop)
 #     loop.run_until_complete(job_to_do())
 #     asyncio.run(job_to_do())
-
 stop = False
 
 
 def check():
     global stop
-    while True:
-        need_get = input("請輸入需要讀取的資料\n")
-        if need_get == "user":
-            print("user_data", json.dumps(user_data, indent=2))
-        elif need_get == "database":
-            with open("data/schedule.json", "r") as json_file:
-                schedule_data = json.load(json_file)
-            print(json.dumps(schedule_data, indent=2))
-        else:
-            print("無法讀取\n可輸入：user以及database")
-        if stop:
-            break
+    try:
+        while True:
+            need_get = input("請輸入需要讀取的資料\n")
+            if need_get == "user":
+                print("user_data", json.dumps(user_data, indent=2))
+            elif need_get == "data":
+                print(GetNotUseData())
+            else:
+                print("無法讀取\n可輸入：user以及data")
+            if stop:
+                break
+    except EOFError:
+        pass
 
 
 def app():
@@ -367,6 +379,7 @@ def main():
         # 已棄用，轉移至 send.py 並使用排成工具每分鐘自動運行
         # threading.Thread(target=run_job_thread, daemon=True).start()
         threading.Thread(target=check, daemon=True).start()
+        CheckFile()
         app()
     except KeyboardInterrupt:
         stop = True
