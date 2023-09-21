@@ -44,9 +44,27 @@ def GetData():
     conn = sqlite3.connect('data/schedule_data.db')
     cursor = conn.cursor()
 
-    cursor.execute("SELECT * FROM schedule WHERE Year = ? AND Month = ? AND Day = ? AND Hour = ? AND Minute = ?;",
+    cursor.execute('''
+    SELECT Message, ChatID FROM schedule WHERE Year = ? AND Month = ? AND Day = ? AND Hour = ? AND Minute = ?;''',
                    (time_year(), time_month(), time_day(), time_hour(), time_minute()))
 
     results = cursor.fetchall()
-    print(results)
+    conn.commit()
+    cursor.close()
     conn.close()
+    return results
+
+
+def GetNotUseData():
+    conn = sqlite3.connect('data/schedule_data.db')
+    cursor = conn.cursor()
+
+    cursor.execute('''
+    SELECT * FROM schedule WHERE Year > ? AND Month > ? AND Day > ? AND Hour > ? AND Minute > ?;''',
+                   (time_year(), time_month(), time_day(), time_hour(), time_minute()))
+
+    results = cursor.fetchall()
+    conn.commit()
+    cursor.close()
+    conn.close()
+    return results

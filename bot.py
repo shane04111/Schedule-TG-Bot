@@ -8,7 +8,7 @@ from function.minute_select import minute_select, check_minute_time
 from function.day_select import day_select
 from function.month_select import month_select
 from function.year_select import year_select
-from function.SQL_Model import SaveData, CheckFile, GetData
+from function.SQL_Model import SaveData, CheckFile, GetData, GetNotUseData
 import json
 import threading
 import re
@@ -57,7 +57,6 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
 
 
 async def button(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    global get_need_data
     query = update.callback_query
     query_user_id = update.callback_query.from_user.id
     query_chat_id = update.callback_query.message.chat.id
@@ -263,9 +262,9 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         return
 
 
-def message_check_text(get_need_data):
-    edit_message = f"是否選擇{get_need_data['year']}/{str(get_need_data['month']).zfill(2)}/{str(get_need_data['day']).zfill(2)} \
-        \n{convert_to_chinese_time(get_need_data['hour'])}{minute_to_chinese(get_need_data['minute'])}提醒\n提醒事項：{get_need_data['text']}"
+def message_check_text(data):
+    edit_message = f"是否選擇{data['year']}/{str(data['month']).zfill(2)}/{str(data['day']).zfill(2)} \
+        \n{convert_to_chinese_time(data['hour'])}{minute_to_chinese(data['minute'])}提醒\n提醒事項：{data['text']}"
     return edit_message
 
 
@@ -348,20 +347,19 @@ stop = False
 
 def check():
     global stop
-    while True:
-        need_get = input("請輸入需要讀取的資料\n")
-        if need_get == "user":
-            print("user_data", json.dumps(user_data, indent=2))
-        elif need_get == "database":
-            with open("data/schedule.json", "r") as json_file:
-                schedule_data = json.load(json_file)
-            print(json.dumps(schedule_data, indent=2))
-        elif need_get == "stop":
-            break
-        else:
-            print("無法讀取\n可輸入：user以及database")
-        if stop:
-            break
+    try:
+        while True:
+            need_get = input("請輸入需要讀取的資料\n")
+            if need_get == "user":
+                print("user_data", json.dumps(user_data, indent=2))
+            elif need_get == "data":
+                print(GetNotUseData())
+            else:
+                print("無法讀取\n可輸入：user以及data")
+            if stop:
+                break
+    except EOFError:
+        pass
 
 
 def app():
@@ -382,7 +380,6 @@ def main():
         # threading.Thread(target=run_job_thread, daemon=True).start()
         threading.Thread(target=check, daemon=True).start()
         CheckFile()
-        GetData()
         app()
     except KeyboardInterrupt:
         stop = True
