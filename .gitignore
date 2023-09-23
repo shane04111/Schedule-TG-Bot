@@ -1,5 +1,6 @@
 /.vscode/
 .idea/*
+data/
 data/schedule.json
 data/schedule_data.bd
 schedule.json

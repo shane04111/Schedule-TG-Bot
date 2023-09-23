@@ -1,5 +1,6 @@
 from telegram import Update, InlineKeyboardMarkup, Bot
-from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, CallbackQueryHandler, filters, ContextTypes
+from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, CallbackQueryHandler, filters, \
+    ContextTypes, Updater
 from dotenv import load_dotenv
 from function.replay_markup import true_false_text, time_chose_data_function, TD_check, SD_check, OY_check, \
     ALL_check, HR_check, MIN_check, config_check, day_check, check_YMD, month_check, year_check
@@ -10,6 +11,7 @@ from function.day_select import day_select
 from function.month_select import month_select
 from function.year_select import year_select
 from function.SQL_Model import SaveData, CheckFile, GetNotUseData
+import sys
 import json
 import threading
 import re
@@ -27,7 +29,11 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 
 
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    text = update.message.text
+    text = None
+    if update.message and update.message.text:
+        text = update.message.text
+    else:
+        print(f"[{time_datetime()}] 消息為空或無文本內容")
     user_id = update.message.from_user.id
     chat_id = update.message.chat.id
     if re.match(r"^/schedule(@EZMinder_bot)?", text):
@@ -182,7 +188,7 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         elif query.data == "day_true":
             await query.edit_message_text("請選擇要幾點提醒", reply_markup=InlineKeyboardMarkup(hour_select(0)))
         elif query.data == "day_false":
-            if time_year() == get_need_data["year"] and time_month == get_need_data["month"]:
+            if time_year() == get_need_data["year"] and time_month() == get_need_data["month"]:
                 year_need = time_year()
                 month_need = time_month()
                 day_need = time_day() + 1
@@ -297,24 +303,31 @@ def hour_check_need(user_data_key):
         return set_select_hour
 
 
-stop = False
+stop = True
 
 
 def check():
     global stop
     try:
-        while True:
+        while stop:
+            # 使用者輸入查詢資料
             need_get = input("請輸入需要讀取的資料\n")
             if need_get == "user":
-                print("user_data", json.dumps(user_data, indent=2))
+                print("user_data", json.dumps(user_data, indent=2, ensure_ascii=False))
             elif need_get == "data":
-                print(GetNotUseData())
+                print(f"[{time_datetime()}] 當前尚未通知的有: \n")
+                for item in GetNotUseData():
+                    formatted_item = f"ID: {item[0]:<4} {item[2]} {item[1]}"
+                    print(formatted_item)
             else:
                 print("無法讀取\n可輸入：user以及data")
-            if stop:
-                break
+    except KeyboardInterrupt:
+        stop = False
     except EOFError:
-        pass
+        stop = False
+        print(f"[{time_datetime()}] 檢測到使用者按下ctrl+c，正在關閉機器人...")
+    else:
+        sys.exit()
 
 
 def app():
@@ -325,21 +338,21 @@ def app():
     application.add_handler(MessageHandler(filters.COMMAND, handle_message))
 
     print("機器人已上線")
-    application.run_polling()
+    application.run_polling(allowed_updates=Update.ALL_TYPES)
 
 
 def main():
     global stop
+    User = threading.Thread(target=check, daemon=True)
     try:
-        threading.Thread(target=check, daemon=True).start()
+        User.start()
         CheckFile()
         app()
     except KeyboardInterrupt:
-        stop = True
-        # print(f"[{time_datetime()}] 檢測到使用者按下ctrl+c，正在關閉機器人...")
+        stop = False
+        print(f"[{time_datetime()}] 檢測到使用者按下ctrl+c，正在關閉機器人...")
     except BaseException as e:
-        # 這裡處理錯誤，e是錯誤物件，包含錯誤的詳細信息
-        print(f"[{time_datetime()}] 發生了一個錯誤:", e)
+        print(f"[{time_datetime()}] 發生了一個錯誤: \n", e)
 
 
 if __name__ == "__main__":
