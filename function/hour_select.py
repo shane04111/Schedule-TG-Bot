@@ -2,6 +2,11 @@ from telegram import InlineKeyboardButton
 
 
 def convert_to_chinese_time(hour):
+    """
+    將數字傳換成中文的時間
+    :param hour: 0-23
+    :return:
+    """
     hour_mapping = {
         0: '半夜十二點',
         1: '凌晨一點',
@@ -35,6 +40,11 @@ def convert_to_chinese_time(hour):
 
 
 def hour_select(hour):
+    """
+    輸出小時選擇按鈕
+    :param hour: 小時
+    :return:
+    """
     result = []
     i = 0
     max_value = 23

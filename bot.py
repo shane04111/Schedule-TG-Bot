@@ -29,6 +29,12 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 
 
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """
+    檢測使用者輸入訊息，並詢問是否需要提醒
+    :param update:
+    :param context:
+    :return:
+    """
     text = None
     if update.message and update.message.text:
         text = update.message.text
@@ -36,6 +42,9 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
         print(f"[{time_datetime()}] 消息為空或無文本內容")
     user_id = update.message.from_user.id
     chat_id = update.message.chat.id
+    ScheduleSlashCommands = re.match(r"^/schedule(@EZMinder_bot)?", text)
+    ScheduleShotCommands = re.match(r"^/[sS](@EZMinder_bot)?", text)
+
     if re.match(r"^/schedule(@EZMinder_bot)?", text):
         clear_text = re.sub(r"^/schedule(@EZMinder_bot)?", "", text).strip()
         if clear_text == "":
@@ -63,6 +72,14 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
 
 
 async def StartSet(update, text, user, chat):
+    """
+    判斷是否過長並給出相對的詢問
+    :param update:
+    :param text: 使用者輸入之訊息
+    :param user: 使用者id
+    :param chat: 聊天頻道
+    :return:
+    """
     if len(text) <= 1900:
         await update.message.reply_text(f"請確認提醒事項：{text}", reply_markup=true_false_text)
     else:
@@ -76,6 +93,12 @@ async def StartSet(update, text, user, chat):
 
 
 async def button(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """
+    按鈕檢測及回應
+    :param update:
+    :param context:
+    :return:
+    """
     query = update.callback_query
     query_user_id = query.from_user.id
     query_chat_id = query.message.chat.id
@@ -224,10 +247,10 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
             get_need_data["hour"] = get_hour
             await query.edit_message_text(f"確認選擇{convert_to_chinese_time(get_hour)}", reply_markup=HR_check)
         elif query.data == "HR_true":
-            await query.edit_message_text("請選擇要幾分提醒", reply_markup=hour_check_button(query_get_key))
+            await query.edit_message_text("請選擇要幾分提醒", reply_markup=hour_check_button(get_need_data))
         elif query.data == "HR_false":
             await query.edit_message_text("請選擇要幾點提醒", reply_markup=InlineKeyboardMarkup(
-                hour_select(hour_check_need(query_get_key))))
+                hour_select(hour_check_need(get_need_data))))
         elif query.data == "HR_back":
             if get_need_data["is_today"]:
                 await query.edit_message_text(text="請選擇提醒時間", reply_markup=time_chose_data_function())
@@ -252,10 +275,10 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         elif query.data == "MIN_true":
             await query.edit_message_text(message_check_text(get_need_data), reply_markup=config_check)
         elif query.data == "MIN_false":
-            await query.edit_message_text("請選擇要幾分提醒", reply_markup=hour_check_button(query_get_key))
+            await query.edit_message_text("請選擇要幾分提醒", reply_markup=hour_check_button(get_need_data))
         elif query.data == "MIN_back":
             await query.edit_message_text("請選擇要幾點提醒", reply_markup=InlineKeyboardMarkup(
-                hour_select(hour_check_need(query_get_key))))
+                hour_select(hour_check_need(get_need_data))))
         elif query.data == "config_true":
             text = get_need_data["text"]
             userID = get_need_data["user_id"]
@@ -265,8 +288,8 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
             user_day = get_need_data["day"]
             user_hour = get_need_data["hour"]
             user_minute = get_need_data["minute"]
-            SaveData(text, userID, chatid, "%04d" % user_year, "%02d" % user_month, "%02d" % user_day, "%02d" % user_hour,
-                     "%02d" % user_minute)
+            SaveData(text, userID, chatid, "%04d" % user_year, "%02d" % user_month, "%02d" % user_day,
+                     "%02d" % user_hour, "%02d" % user_minute)
             user_data.pop(query_get_key)
             await query.edit_message_text("已成功安排提醒\n如需設定其他提醒請再次輸入 /schedule")
         elif query.data == "config_false":
@@ -279,6 +302,11 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 
 
 def message_check_text(data):
+    """
+    檢查訊息是否過長，並給出相對應所需之訊息
+    :param data: 使用者輸入資料
+    :return:
+    """
     if len(data['text']) <= 1900:
         edit_message = f"是否選擇{data['year']}/{str(data['month']).zfill(2)}/{str(data['day']).zfill(2)} \
             \n{convert_to_chinese_time(data['hour'])}{minute_to_chinese(data['minute'])}提醒\n提醒事項：{data['text']}"
@@ -289,6 +317,11 @@ def message_check_text(data):
 
 
 def minute_to_chinese(minute):
+    """
+    分鐘轉換
+    :param minute: 分鐘數
+    :return:
+    """
     if minute == 0:
         return "整"
     if 0 < minute < 10:
@@ -297,9 +330,14 @@ def minute_to_chinese(minute):
         return f"{minute}分"
 
 
-def hour_check_button(user_data_key):
-    if user_data[user_data_key]["is_today"]:
-        if user_data[user_data_key]["hour"] == time_hour():
+def hour_check_button(data):
+    """
+    檢查時間並輸出按鈕選項
+    :param data:
+    :return:
+    """
+    if data["is_today"]:
+        if data["hour"] == time_hour():
             set_minute_button = InlineKeyboardMarkup(minute_select(True))
             return set_minute_button
         else:
@@ -310,8 +348,13 @@ def hour_check_button(user_data_key):
         return set_minute_button
 
 
-def hour_check_need(user_data_key):
-    if user_data[user_data_key]["is_today"]:
+def hour_check_need(data):
+    """
+    檢查分鐘並給出相應小時
+    :param data:
+    :return:
+    """
+    if data["is_today"]:
         if time_minute() > 57:
             set_select_hour = time_hour() + 1
             return set_select_hour
@@ -327,6 +370,10 @@ stop = True
 
 
 def check():
+    """
+    後臺查詢功能
+    :return:
+    """
     global stop
     try:
         while stop:
@@ -351,6 +398,10 @@ def check():
 
 
 def app():
+    """
+    開啟機器人
+    :return:
+    """
     application = ApplicationBuilder().token(TOKEN).build()
 
     application.add_handler(CommandHandler(["start", "help"], start))
@@ -362,11 +413,15 @@ def app():
 
 
 def main():
+    """
+    程式入口
+    :return:
+    """
     global stop
     User = threading.Thread(target=check, daemon=True)
     try:
         User.start()
-        CheckFile()
+        # CheckFile()
         app()
     except KeyboardInterrupt:
         stop = False
