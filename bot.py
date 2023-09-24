@@ -42,30 +42,17 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
         print(f"[{time_datetime()}] 消息為空或無文本內容")
     user_id = update.message.from_user.id
     chat_id = update.message.chat.id
-    ScheduleSlashCommands = re.match(r"^/schedule(@EZMinder_bot)?", text)
-    ScheduleShotCommands = re.match(r"^/[sS](@EZMinder_bot)?", text)
-
-    if re.match(r"^/schedule(@EZMinder_bot)?", text):
-        clear_text = re.sub(r"^/schedule(@EZMinder_bot)?", "", text).strip()
+    checkCommands = r"(![sS]|/[sS])([cC][hH][eE][dD][uU][lL][eE])?(@EZMinder_bot)?"
+    deleteCommands = r"^(![dD]|/[dD])([eE][lL])?([eE][tT][eE])?(@EZMinder_bot)?"
+    if re.match(checkCommands, text):
+        clear_text = re.sub(checkCommands, "", text).strip()
         if clear_text == "":
-            await update.message.reply_text("請重新使用 /schedule 並在後面加上提醒事項")
-        else:
-            await StartSet(update, clear_text, user_id, chat_id)
-    elif re.match(r"^/[sS](@EZMinder_bot)?", text):
-        clear_text = re.sub(r"/[sS]((@EZMinder_bot)?)", "", text, re.I).strip()
-        if clear_text == "":
-            await update.message.reply_text("請重新使用 /s 並在後面加上提醒事項")
-        else:
-            await StartSet(update, clear_text, user_id, chat_id)
-    elif re.match(r"^![sS](@EZMinder_bot)?", text):
-        clear_text = re.sub(r"![sS]((@EZMinder_bot)?)", "", text, re.I).strip()
-        if clear_text == "":
-            await update.message.reply_text("請重新使用 !s 並在後面加上提醒事項")
+            await update.message.reply_text("請重新使用命令並在後面加上提醒事項")
         else:
             await StartSet(update, clear_text, user_id, chat_id)
     elif text == "!id":
         await update.message.reply_text(f"{update.message.message_id}")
-    elif re.match(r"^![sS][dD](@EZMinder_bot)?", text):
+    elif re.match(deleteCommands, text):
         await update.message.reply_text("請選取要刪除的提醒消息")
     elif update.message.chat.type == "private":
         await StartSet(update, text, user_id, chat_id)
