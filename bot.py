@@ -1,6 +1,6 @@
-from telegram import Update, InlineKeyboardMarkup, Bot
+from telegram import Update, InlineKeyboardMarkup, Bot, error, InputTextMessageContent
 from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, CallbackQueryHandler, filters, \
-    ContextTypes, Updater
+    ContextTypes
 from dotenv import load_dotenv
 from function.replay_markup import true_false_text, time_chose_data_function, TD_check, SD_check, OY_check, \
     ALL_check, HR_check, MIN_check, config_check, day_check, check_YMD, month_check, year_check
@@ -25,7 +25,7 @@ user_data = {}
 
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    await update.message.reply_text("歡迎使用機器人！\n/schedule 創建一個新的提醒 可以簡寫為/s")
+    await update.message.reply_text("歡迎使用機器人！\n!s 創建一個新的提醒")
 
 
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -41,25 +41,35 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
         if clear_text == "":
             await update.message.reply_text("請重新使用 /schedule 並在後面加上提醒事項")
         else:
-            user_data[f"{user_id}|{chat_id}"] = {
-                "text": clear_text,
-                "user_id": user_id,
-                "chat_id": chat_id
-            }
-
-            await update.message.reply_text(f"請確認提醒事項：{clear_text}", reply_markup=true_false_text)
-    elif re.match(r"^/s(@EZMinder_bot)?", text):
-        clear_text = re.sub(r"/s((@EZMinder_bot)?)", "", text).strip()
+            await StartSet(update, clear_text, user_id, chat_id)
+    elif re.match(r"^/[sS](@EZMinder_bot)?", text):
+        clear_text = re.sub(r"/[sS]((@EZMinder_bot)?)", "", text, re.I).strip()
         if clear_text == "":
             await update.message.reply_text("請重新使用 /s 並在後面加上提醒事項")
         else:
-            user_data[f"{user_id}|{chat_id}"] = {
-                "text": clear_text,
-                "user_id": user_id,
-                "chat_id": chat_id
-            }
+            await StartSet(update, clear_text, user_id, chat_id)
+    elif re.match(r"^![sS](@EZMinder_bot)?", text):
+        clear_text = re.sub(r"![sS]((@EZMinder_bot)?)", "", text, re.I).strip()
+        if clear_text == "":
+            await update.message.reply_text("請重新使用 !s 並在後面加上提醒事項")
+        else:
+            await StartSet(update, clear_text, user_id, chat_id)
+    elif update.message.chat.type == "private":
+        await StartSet(update, text, user_id, chat_id)
 
-            await update.message.reply_text(f"請確認提醒事項：{clear_text}", reply_markup=true_false_text)
+
+async def StartSet(update, text, user, chat):
+    user_data[f"{user}|{chat}"] = {
+        "text": text,
+        "user_id": user,
+        "chat_id": chat
+    }
+
+    if len(text) <= 1900:
+        await update.message.reply_text(f"請確認提醒事項：{text}", reply_markup=true_false_text)
+    else:
+        await update.message.reply_text(text)
+        await update.message.reply_text("是否提醒上述事項", reply_markup=true_false_text)
 
 
 async def button(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -263,8 +273,12 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 
 
 def message_check_text(data):
-    edit_message = f"是否選擇{data['year']}/{str(data['month']).zfill(2)}/{str(data['day']).zfill(2)} \
-        \n{convert_to_chinese_time(data['hour'])}{minute_to_chinese(data['minute'])}提醒\n提醒事項：{data['text']}"
+    if len(data['text']) <= 1900:
+        edit_message = f"是否選擇{data['year']}/{str(data['month']).zfill(2)}/{str(data['day']).zfill(2)} \
+            \n{convert_to_chinese_time(data['hour'])}{minute_to_chinese(data['minute'])}提醒\n提醒事項：{data['text']}"
+    else:
+        edit_message = f"是否選擇{data['year']}/{str(data['month']).zfill(2)}/{str(data['day']).zfill(2)} \
+            \n{convert_to_chinese_time(data['hour'])}{minute_to_chinese(data['minute'])}提醒\n提醒上述事項"
     return edit_message
 
 
@@ -317,7 +331,7 @@ def check():
             elif need_get == "data":
                 print(f"[{time_datetime()}] 當前尚未通知的有: \n")
                 for item in GetNotUseData():
-                    formatted_item = f"ID: {item[0]:<4} {item[2]} {item[1]}"
+                    formatted_item = f"ID:{item[0]:<4} {item[2]} {item[1]}"
                     print(formatted_item)
             else:
                 print("無法讀取\n可輸入：user以及data")
@@ -335,7 +349,7 @@ def app():
 
     application.add_handler(CommandHandler(["start", "help"], start))
     application.add_handler(CallbackQueryHandler(button))
-    application.add_handler(MessageHandler(filters.COMMAND, handle_message))
+    application.add_handler(MessageHandler(filters.TEXT, handle_message))
 
     print("機器人已上線")
     application.run_polling(allowed_updates=Update.ALL_TYPES)
@@ -353,6 +367,8 @@ def main():
         print(f"[{time_datetime()}] 檢測到使用者按下ctrl+c，正在關閉機器人...")
     except BaseException as e:
         print(f"[{time_datetime()}] 發生了一個錯誤: \n", e)
+    except error as e:
+        print(f"[{time_datetime()}] 與TG溝通發生錯誤: \n", e)
 
 
 if __name__ == "__main__":
