@@ -54,35 +54,40 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
             await update.message.reply_text("請重新使用 !s 並在後面加上提醒事項")
         else:
             await StartSet(update, clear_text, user_id, chat_id)
+    elif text == "!id":
+        await update.message.reply_text(f"{update.message.message_id}")
+    elif re.match(r"^![sS][dD](@EZMinder_bot)?", text):
+        await update.message.reply_text("請選取要刪除的提醒消息")
     elif update.message.chat.type == "private":
         await StartSet(update, text, user_id, chat_id)
 
 
 async def StartSet(update, text, user, chat):
+    if len(text) <= 1900:
+        await update.message.reply_text(f"請確認提醒事項：{text}", reply_markup=true_false_text)
+    else:
+        await update.message.reply_text(text)
+        await update.message.reply_text("是否提醒上述事項", reply_markup=true_false_text)
     user_data[f"{user}|{chat}"] = {
         "text": text,
         "user_id": user,
         "chat_id": chat
     }
 
-    if len(text) <= 1900:
-        await update.message.reply_text(f"請確認提醒事項：{text}", reply_markup=true_false_text)
-    else:
-        await update.message.reply_text(text)
-        await update.message.reply_text("是否提醒上述事項", reply_markup=true_false_text)
-
 
 async def button(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     query = update.callback_query
-    query_user_id = update.callback_query.from_user.id
-    query_chat_id = update.callback_query.message.chat.id
+    query_user_id = query.from_user.id
+    query_chat_id = query.message.chat.id
     # ==========user_data===========
     query_get_key = f"{query_user_id}|{query_chat_id}"
     get_need_data = None
     if query_get_key in user_data:
         get_need_data = user_data[query_get_key]
     else:
-        await bot.sendMessage(query_chat_id, "按鈕已過時或無權限")
+        await query.edit_message_text("按鈕已過時或無權限")
+        # 改由編輯訊息
+        # await bot.sendMessage(query_chat_id, "按鈕已過時或無權限")
     # ===========match==============
     day_match = re.search(r'(\d+)day', query.data)
     hour_match = re.search(r'(\d+)hour', query.data)
@@ -253,13 +258,14 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
                 hour_select(hour_check_need(query_get_key))))
         elif query.data == "config_true":
             text = get_need_data["text"]
+            userID = get_need_data["user_id"]
             chatid = get_need_data["chat_id"]
             user_year = get_need_data["year"]
             user_month = get_need_data["month"]
             user_day = get_need_data["day"]
             user_hour = get_need_data["hour"]
             user_minute = get_need_data["minute"]
-            SaveData(text, chatid, "%04d" % user_year, "%02d" % user_month, "%02d" % user_day, "%02d" % user_hour,
+            SaveData(text, userID, chatid, "%04d" % user_year, "%02d" % user_month, "%02d" % user_day, "%02d" % user_hour,
                      "%02d" % user_minute)
             user_data.pop(query_get_key)
             await query.edit_message_text("已成功安排提醒\n如需設定其他提醒請再次輸入 /schedule")

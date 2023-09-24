@@ -26,12 +26,12 @@ def CheckFile():
     cursor.close()
 
 
-def SaveData(Message: str, ChatID: int, Year: int, Month: int, Day: int, Hour: int, Minute: int):
+def SaveData(Message: str,UserID: int, ChatID: int, Year: int, Month: int, Day: int, Hour: int, Minute: int):
     conn = sqlite3.connect(DB)
     cursor = conn.cursor()
     cursor.execute(
-        '''INSERT INTO schedule (Message, ChatID, DateTime) VALUES (?, ?, ?)''',
-        (Message, ChatID, f"{Year}-{Month}-{Day} {Hour}:{Minute}:00"))
+        '''INSERT INTO schedule (Message, UserID, ChatID, DateTime) VALUES (?, ?, ?)''',
+        (Message, UserID, ChatID, f"{Year}-{Month}-{Day} {Hour}:{Minute}:00"))
     conn.commit()
     cursor.close()
 
@@ -71,3 +71,6 @@ def ChangeSend(delID: str):
     cursor.execute(sql, asd)
     conn.commit()
     cursor.close()
+
+
+def GetUserMessage(userId, ):
