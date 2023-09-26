@@ -2,6 +2,11 @@ from telegram import InlineKeyboardButton, InlineKeyboardMarkup
 
 
 def year_select(year):
+    """
+    輸入年份並輸出設定年份按鈕
+    :param year: 輸入所需之開始年份
+    :return:
+    """
     result = []
     i = 0
     max_value = year + 11

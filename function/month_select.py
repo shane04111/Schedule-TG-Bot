@@ -2,6 +2,11 @@ from telegram import InlineKeyboardButton, InlineKeyboardMarkup
 
 
 def month_select(month):
+    """
+    輸入月份輸出該月有幾天的按鈕
+    :param month: 月份
+    :return:
+    """
     result = []
     i = 0
     max_value = 12

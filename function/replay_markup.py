@@ -124,10 +124,15 @@ config_TF_data = [
 
 config_check = InlineKeyboardMarkup(config_TF_data)
 
+
 # ======================================================================================
 
 
 def time_chose_data_function():
+    """
+    判斷時間並返回相對應設定時間按鈕
+    :return:
+    """
     get_year = check_YMD().year
     get_month = check_YMD().month
     time_chose_data = [
@@ -143,14 +148,14 @@ def time_chose_data_function():
     return time_chose
 
 
-class DateResult:
-    def __init__(self, year, month, is_valid):
-        self.year = year
-        self.month = month
-        self.is_valid = is_valid
-
-
 def check_YMD():
+    """
+    檢查當前日期是否為當月之最後一天，\n
+    如果是則月份加一並回傳True， \n
+    如果是今天最後一天則加年份與月份加一並回傳True
+    如果不符合上述條件則返回當前年月並回傳False
+    :return:
+    """
     if time_day() == month_to_day(time_year(), time_month()):
         if time_month() == 12 and time_day() == 31:
             lest_month = 1
@@ -167,3 +172,10 @@ def check_YMD():
         lest_year = time_year()
         TF_check = False
         return DateResult(lest_year, lest_month, TF_check)
+
+
+class DateResult:
+    def __init__(self, year, month, is_valid):
+        self.year = year
+        self.month = month
+        self.is_valid = is_valid

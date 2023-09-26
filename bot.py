@@ -1,71 +1,110 @@
-from telegram import Update, InlineKeyboardMarkup, Bot
-from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, CallbackQueryHandler, filters, ContextTypes
-from function.replay_markup import true_false_text, time_chose_data_function, TD_check, SD_check, OY_check, \
-    ALL_check, HR_check, MIN_check, config_check, day_check, check_YMD, month_check, year_check
-from function.my_time import time_year, time_month, time_day, time_hour, time_minute
+import json
+import os
+import re
+import sys
+import threading
+import logging
+
+from dotenv import load_dotenv
+from telegram import *
+from telegram.ext import *
+
+from function.SQL_Model import SaveData, GetNotUseData, ChangeSend, GetUserMessage
+from function.day_select import day_select
+from function.deleteMessage import CreateDeleteButton
 from function.hour_select import hour_select, convert_to_chinese_time
 from function.minute_select import minute_select, check_minute_time
-from function.day_select import day_select
 from function.month_select import month_select
+from function.my_time import time_year, time_month, time_day, time_hour, time_minute, time_datetime
+from function.replay_markup import true_false_text, time_chose_data_function, TD_check, SD_check, OY_check, \
+    ALL_check, HR_check, MIN_check, config_check, day_check, check_YMD, month_check, year_check
 from function.year_select import year_select
-from function.SQL_Model import SaveData, CheckFile, GetData, GetNotUseData
-import json
-import threading
-import re
 
-with open("config.json", "r") as f:
-    config = json.load(f)
-TOKEN = config["TOKEN"]
-
+load_dotenv()
+TOKEN = os.getenv("TOKEN")
+DEV_ID = os.getenv("DEV")
 bot = Bot(token=TOKEN)
 
 user_data = {}
 
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    await update.message.reply_text("歡迎使用機器人！\n/schedule 創建一個新的提醒")
+    await update.message.reply_text("歡迎使用機器人！\n!s 創建一個新的提醒")
 
 
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    text = update.message.text
+    """
+    檢測使用者輸入訊息，並詢問是否需要提醒
+    :param update:
+    :param context:
+    :return:
+    """
+    text = None
+    if update.message and update.message.text:
+        text = update.message.text
+    else:
+        print(f"[{time_datetime()}] 消息為空或無文本內容")
     user_id = update.message.from_user.id
     chat_id = update.message.chat.id
-    if re.match(r"^/schedule(@EZMinder_bot)?", text):
-        clear_text = re.sub(r"^/schedule(@EZMinder_bot)?", "", text).strip()
+    DelData = GetUserMessage(user_id, chat_id)
+    checkCommands = r"(![sS]|/[sS])([cC][hH][eE][dD][uU][lL][eE])?(@EZMinder_bot)?"
+    deleteCommands = r"^(![dD]|/[dD])([eE][lL])?([eE][tT][eE])?(@EZMinder_bot)?"
+    if re.match(checkCommands, text):
+        clear_text = re.sub(checkCommands, "", text).strip()
         if clear_text == "":
-            await update.message.reply_text("請重新使用 /schedule 並在後面加上提醒事項")
+            await update.message.reply_text("請重新使用命令並在後面加上提醒事項")
         else:
-            user_data[f"{user_id}|{chat_id}"] = {
-                "text": clear_text,
-                "user_id": user_id,
-                "chat_id": chat_id
-            }
-
-            await update.message.reply_text(f"請確認提醒事項：{clear_text}", reply_markup=true_false_text)
-    elif re.match(r"^/s(@EZMinder_bot)?", text):
-        clear_text = re.sub(r"/s((@EZMinder_bot)?)", "", text).strip()
-        if clear_text == "":
-            await update.message.reply_text("請重新使用 /s 並在後面加上提醒事項")
+            await StartSet(update, clear_text, user_id, chat_id)
+    elif text == "!id":
+        await update.message.reply_text(f"{update.message.message_id}")
+    elif re.match(deleteCommands, text):
+        if DelData:
+            await update.message.reply_text("請選取要刪除的提醒消息", reply_markup=CreateDeleteButton(user_id, chat_id))
+            user_data[f"{user_id}|{chat_id}"] = {"user_id": user_id}
         else:
-            user_data[f"{user_id}|{chat_id}"] = {
-                "text": clear_text,
-                "user_id": user_id,
-                "chat_id": chat_id
-            }
+            await update.message.reply_text("尚未設定提醒")
+    elif update.message.chat.type == "private":
+        await StartSet(update, text, user_id, chat_id)
 
-            await update.message.reply_text(f"請確認提醒事項：{clear_text}", reply_markup=true_false_text)
+
+async def StartSet(update, text, user, chat):
+    """
+    判斷是否過長並給出相對的詢問
+    :param update:
+    :param text: 使用者輸入之訊息
+    :param user: 使用者id
+    :param chat: 聊天頻道
+    :return:
+    """
+    if len(text) <= 1900:
+        await update.message.reply_text(f"請確認提醒事項：{text}", reply_markup=true_false_text)
+    else:
+        await update.message.reply_text(text)
+        await update.message.reply_text("是否提醒上述事項", reply_markup=true_false_text)
+    user_data[f"{user}|{chat}"] = {
+        "text": text,
+        "user_id": user,
+        "chat_id": chat
+    }
 
 
 async def button(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """
+    按鈕檢測及回應
+    :param update:
+    :param context:
+    :return:
+    """
     query = update.callback_query
-    query_user_id = update.callback_query.from_user.id
-    query_chat_id = update.callback_query.message.chat.id
+    query_user_id = query.from_user.id
+    query_chat_id = query.message.chat.id
     # ==========user_data===========
     query_get_key = f"{query_user_id}|{query_chat_id}"
     get_need_data = None
     if query_get_key in user_data:
         get_need_data = user_data[query_get_key]
     else:
+        # await query.edit_message_text("按鈕已過時或無權限")
         await bot.sendMessage(query_chat_id, "按鈕已過時或無權限")
     # ===========match==============
     day_match = re.search(r'(\d+)day', query.data)
@@ -73,8 +112,10 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     min_match = re.search(r'(\d+)min', query.data)
     month_match = re.search(r'(\d+)month', query.data)
     year_match = re.search(r'(\d+)year', query.data)
+    delete_match = re.search(r'(\d+)del', query.data)
     await query.answer()
-    if query_get_key in user_data and get_need_data.get('user_id') == query_user_id:
+    if query_get_key in user_data and get_need_data.get(
+            'user_id') == query_user_id:
         if query.data == "text_true":
             await query.edit_message_text(text="請選擇提醒時間", reply_markup=time_chose_data_function())
         elif query.data == "text_false":
@@ -182,7 +223,7 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         elif query.data == "day_true":
             await query.edit_message_text("請選擇要幾點提醒", reply_markup=InlineKeyboardMarkup(hour_select(0)))
         elif query.data == "day_false":
-            if time_year() == get_need_data["year"] and time_month == get_need_data["month"]:
+            if time_year() == get_need_data["year"] and time_month() == get_need_data["month"]:
                 year_need = time_year()
                 month_need = time_month()
                 day_need = time_day() + 1
@@ -203,10 +244,10 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
             get_need_data["hour"] = get_hour
             await query.edit_message_text(f"確認選擇{convert_to_chinese_time(get_hour)}", reply_markup=HR_check)
         elif query.data == "HR_true":
-            await query.edit_message_text("請選擇要幾分提醒", reply_markup=hour_check_button(query_get_key))
+            await query.edit_message_text("請選擇要幾分提醒", reply_markup=hour_check_button(get_need_data))
         elif query.data == "HR_false":
             await query.edit_message_text("請選擇要幾點提醒", reply_markup=InlineKeyboardMarkup(
-                hour_select(hour_check_need(query_get_key))))
+                hour_select(hour_check_need(get_need_data))))
         elif query.data == "HR_back":
             if get_need_data["is_today"]:
                 await query.edit_message_text(text="請選擇提醒時間", reply_markup=time_chose_data_function())
@@ -231,26 +272,21 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         elif query.data == "MIN_true":
             await query.edit_message_text(message_check_text(get_need_data), reply_markup=config_check)
         elif query.data == "MIN_false":
-            await query.edit_message_text("請選擇要幾分提醒", reply_markup=hour_check_button(query_get_key))
+            await query.edit_message_text("請選擇要幾分提醒", reply_markup=hour_check_button(get_need_data))
         elif query.data == "MIN_back":
             await query.edit_message_text("請選擇要幾點提醒", reply_markup=InlineKeyboardMarkup(
-                hour_select(hour_check_need(query_get_key))))
+                hour_select(hour_check_need(get_need_data))))
         elif query.data == "config_true":
-            # 棄用
-            # 將儲存方式由json轉至SQL lite
-            # with open("data/schedule.json", "r") as json_file:
-            #     schedule_data = json.load(json_file)
-            # schedule_data["schedule"].append(get_need_data)
-            # with open("data/schedule.json", "w") as json_file:
-            #     json.dump(schedule_data, json_file)
             text = get_need_data["text"]
+            userID = get_need_data["user_id"]
             chatid = get_need_data["chat_id"]
             user_year = get_need_data["year"]
             user_month = get_need_data["month"]
             user_day = get_need_data["day"]
             user_hour = get_need_data["hour"]
             user_minute = get_need_data["minute"]
-            SaveData(text, chatid, user_year, user_month, user_day, user_hour, user_minute)
+            SaveData(text, userID, chatid, "%04d" % user_year, "%02d" % user_month, "%02d" % user_day,
+                     "%02d" % user_hour, "%02d" % user_minute)
             user_data.pop(query_get_key)
             await query.edit_message_text("已成功安排提醒\n如需設定其他提醒請再次輸入 /schedule")
         elif query.data == "config_false":
@@ -258,17 +294,46 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         elif query.data == "config_cancel":
             user_data.pop(query_get_key)
             await query.edit_message_text("已取消安排提醒\n如需設定其他提醒請再次輸入 /schedule")
+        elif delete_match:
+            get_delete = str(delete_match.group(1))
+            ChangeSend(get_delete)
+            DelData = GetUserMessage(query_user_id, query_chat_id)
+            if DelData:
+                await query.edit_message_text("已刪除", reply_markup=CreateDeleteButton(query_user_id, query_chat_id))
+            else:
+                await query.edit_message_text("無提醒訊息")
+        elif query.data == "del":
+            await query.edit_message_text("如需重新刪除提醒請再次輸入指令")
+        else:
+            print("have in to the data")
+            print(query.data)
     else:
+        print("not in to the data")
+        print(query.data)
         return
 
 
 def message_check_text(data):
-    edit_message = f"是否選擇{data['year']}/{str(data['month']).zfill(2)}/{str(data['day']).zfill(2)} \
-        \n{convert_to_chinese_time(data['hour'])}{minute_to_chinese(data['minute'])}提醒\n提醒事項：{data['text']}"
+    """
+    檢查訊息是否過長，並給出相對應所需之訊息
+    :param data: 使用者輸入資料
+    :return:
+    """
+    if len(data['text']) <= 1900:
+        edit_message = f"是否選擇{data['year']}/{str(data['month']).zfill(2)}/{str(data['day']).zfill(2)} \
+            \n{convert_to_chinese_time(data['hour'])}{minute_to_chinese(data['minute'])}提醒\n提醒事項：{data['text']}"
+    else:
+        edit_message = f"是否選擇{data['year']}/{str(data['month']).zfill(2)}/{str(data['day']).zfill(2)} \
+            \n{convert_to_chinese_time(data['hour'])}{minute_to_chinese(data['minute'])}提醒\n提醒上述事項"
     return edit_message
 
 
 def minute_to_chinese(minute):
+    """
+    分鐘轉換
+    :param minute: 分鐘數
+    :return:
+    """
     if minute == 0:
         return "整"
     if 0 < minute < 10:
@@ -277,9 +342,14 @@ def minute_to_chinese(minute):
         return f"{minute}分"
 
 
-def hour_check_button(user_data_key):
-    if user_data[user_data_key]["is_today"]:
-        if user_data[user_data_key]["hour"] == time_hour():
+def hour_check_button(data):
+    """
+    檢查時間並輸出按鈕選項
+    :param data:
+    :return:
+    """
+    if data["is_today"]:
+        if data["hour"] == time_hour():
             set_minute_button = InlineKeyboardMarkup(minute_select(True))
             return set_minute_button
         else:
@@ -290,8 +360,13 @@ def hour_check_button(user_data_key):
         return set_minute_button
 
 
-def hour_check_need(user_data_key):
-    if user_data[user_data_key]["is_today"]:
+def hour_check_need(data):
+    """
+    檢查分鐘並給出相應小時
+    :param data:
+    :return:
+    """
+    if data["is_today"]:
         if time_minute() > 57:
             set_select_hour = time_hour() + 1
             return set_select_hour
@@ -303,86 +378,81 @@ def hour_check_need(user_data_key):
         return set_select_hour
 
 
-# 棄用
-# async def job_to_do():
-#     global stop
-#     while True:
-#         if time_second() == 0:
-#             indices_del = []
-#             with open('data/schedule.json', 'r') as file:
-#                 schedule_json_data = json.load(file)
-#             schedule_list = schedule_json_data["schedule"]
-#             for index, data in enumerate(schedule_list):
-#                 user_message = data["text"]
-#                 user_chat_id = data["chat_id"]
-#                 user_year = data["year"]
-#                 user_month = data["month"]
-#                 user_day = data["day"]
-#                 user_hour = data["hour"]
-#                 user_minute = data["minute"]
-#                 now_time = f"{time_year()}/{time_month()}/{time_day()}-{time_hour()}:{time_minute()}"
-#                 user_time = f"{user_year}/{user_month}/{user_day}-{user_hour}:{user_minute}"
-#                 if now_time == user_time:
-#                     await bot.sendMessage(user_chat_id, user_message)
-#                     indices_del.append(index)
-#                 if now_time > user_time:
-#                     indices_del.append(index)
-#             for index in reversed(indices_del):
-#                 del schedule_list[index]
-#                 with open('data/schedule.json', 'w') as del_file:
-#                     json.dump(schedule_json_data, del_file, indent=2)
-#         await asyncio.sleep(1)
-#         if stop:
-#             break
+logger = logging.getLogger(__name__)
 
 
-# 棄用
-# def run_job_thread():
-#     loop = asyncio.new_event_loop()
-#     asyncio.set_event_loop(loop)
-#     loop.run_until_complete(job_to_do())
-#     asyncio.run(job_to_do())
-stop = False
+async def error_handler(update: object, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Log the error and send a telegram message to notify the developer."""
+    # Log the error before we do anything else, so we can see it even if something breaks.
+    logger.error(f"[{time_datetime()}] TG error")
+    await bot.sendMessage(DEV_ID, f"TG機器人發生了神奇的錯誤：{context.error}")
+
+
+stop = True
 
 
 def check():
+    """
+    後臺查詢功能
+    :return:
+    """
     global stop
     try:
-        while True:
+        while stop:
+            # 使用者輸入查詢資料
             need_get = input("請輸入需要讀取的資料\n")
             if need_get == "user":
-                print("user_data", json.dumps(user_data, indent=2))
+                print("user_data", json.dumps(user_data, indent=2, ensure_ascii=False))
             elif need_get == "data":
-                print(GetNotUseData())
+                print(f"[{time_datetime()}] 當前尚未通知的有: \n")
+                for item in GetNotUseData():
+                    formatted_item = f"ID:{item[0]:<4} {item[2]} {item[1]}"
+                    print(formatted_item)
             else:
                 print("無法讀取\n可輸入：user以及data")
-            if stop:
-                break
+    except KeyboardInterrupt:
+        stop = False
     except EOFError:
-        pass
+        stop = False
+        print(f"[{time_datetime()}] 檢測到使用者按下ctrl+c，正在關閉機器人...")
+    else:
+        sys.exit()
 
 
 def app():
+    """
+    開啟機器人
+    :return:
+    """
     application = ApplicationBuilder().token(TOKEN).build()
 
+    application.add_error_handler(error_handler)
     application.add_handler(CommandHandler(["start", "help"], start))
     application.add_handler(CallbackQueryHandler(button))
-    application.add_handler(MessageHandler(filters.COMMAND, handle_message))
+    application.add_handler(MessageHandler(filters.TEXT, handle_message))
 
     print("機器人已上線")
-    application.run_polling()
+    application.run_polling(allowed_updates=Update.ALL_TYPES)
 
 
 def main():
+    """
+    程式入口
+    :return:
+    """
     global stop
+    UserThread = threading.Thread(target=check, daemon=True)
     try:
-        # 已棄用，轉移至 send.py 並使用排成工具每分鐘自動運行
-        # threading.Thread(target=run_job_thread, daemon=True).start()
-        threading.Thread(target=check, daemon=True).start()
-        CheckFile()
+        UserThread.start()
+        # CheckFile()
         app()
+    except error.BadRequest:
+        print(f"[{time_datetime()}] Emm神奇的修改重複內容，可能有人按了兩下按鈕")
     except KeyboardInterrupt:
-        stop = True
+        stop = False
+        print(f"[{time_datetime()}] 檢測到使用者按下ctrl+c，正在關閉機器人...")
+    except BaseException as e:
+        print(f"[{time_datetime()}] 發生了一個錯誤: \n", e)
 
 
 if __name__ == "__main__":
