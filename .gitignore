@@ -1,6 +1,7 @@
 /.vscode/
 .idea/*
 data/
+function/__pycache__/
 data/schedule.json
 data/schedule_data.bd
 schedule.json

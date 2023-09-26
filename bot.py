@@ -1,24 +1,28 @@
-from telegram import Update, InlineKeyboardMarkup, Bot, error, InputTextMessageContent
-from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, CallbackQueryHandler, filters, \
-    ContextTypes
+import json
+import os
+import re
+import sys
+import threading
+import logging
+
 from dotenv import load_dotenv
-from function.replay_markup import true_false_text, time_chose_data_function, TD_check, SD_check, OY_check, \
-    ALL_check, HR_check, MIN_check, config_check, day_check, check_YMD, month_check, year_check
-from function.my_time import time_year, time_month, time_day, time_hour, time_minute, time_datetime
+from telegram import *
+from telegram.ext import *
+
+from function.SQL_Model import SaveData, GetNotUseData, ChangeSend, GetUserMessage
+from function.day_select import day_select
+from function.deleteMessage import CreateDeleteButton
 from function.hour_select import hour_select, convert_to_chinese_time
 from function.minute_select import minute_select, check_minute_time
-from function.day_select import day_select
 from function.month_select import month_select
+from function.my_time import time_year, time_month, time_day, time_hour, time_minute, time_datetime
+from function.replay_markup import true_false_text, time_chose_data_function, TD_check, SD_check, OY_check, \
+    ALL_check, HR_check, MIN_check, config_check, day_check, check_YMD, month_check, year_check
 from function.year_select import year_select
-from function.SQL_Model import SaveData, CheckFile, GetNotUseData
-import sys
-import json
-import threading
-import re
-import os
 
 load_dotenv()
 TOKEN = os.getenv("TOKEN")
+DEV_ID = os.getenv("DEV")
 bot = Bot(token=TOKEN)
 
 user_data = {}
@@ -42,6 +46,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
         print(f"[{time_datetime()}] 消息為空或無文本內容")
     user_id = update.message.from_user.id
     chat_id = update.message.chat.id
+    DelData = GetUserMessage(user_id, chat_id)
     checkCommands = r"(![sS]|/[sS])([cC][hH][eE][dD][uU][lL][eE])?(@EZMinder_bot)?"
     deleteCommands = r"^(![dD]|/[dD])([eE][lL])?([eE][tT][eE])?(@EZMinder_bot)?"
     if re.match(checkCommands, text):
@@ -53,7 +58,11 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
     elif text == "!id":
         await update.message.reply_text(f"{update.message.message_id}")
     elif re.match(deleteCommands, text):
-        await update.message.reply_text("請選取要刪除的提醒消息")
+        if DelData:
+            await update.message.reply_text("請選取要刪除的提醒消息", reply_markup=CreateDeleteButton(user_id, chat_id))
+            user_data[f"{user_id}|{chat_id}"] = {"user_id": user_id}
+        else:
+            await update.message.reply_text("尚未設定提醒")
     elif update.message.chat.type == "private":
         await StartSet(update, text, user_id, chat_id)
 
@@ -95,17 +104,18 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     if query_get_key in user_data:
         get_need_data = user_data[query_get_key]
     else:
-        await query.edit_message_text("按鈕已過時或無權限")
-        # 改由編輯訊息
-        # await bot.sendMessage(query_chat_id, "按鈕已過時或無權限")
+        # await query.edit_message_text("按鈕已過時或無權限")
+        await bot.sendMessage(query_chat_id, "按鈕已過時或無權限")
     # ===========match==============
     day_match = re.search(r'(\d+)day', query.data)
     hour_match = re.search(r'(\d+)hour', query.data)
     min_match = re.search(r'(\d+)min', query.data)
     month_match = re.search(r'(\d+)month', query.data)
     year_match = re.search(r'(\d+)year', query.data)
+    delete_match = re.search(r'(\d+)del', query.data)
     await query.answer()
-    if query_get_key in user_data and get_need_data.get('user_id') == query_user_id:
+    if query_get_key in user_data and get_need_data.get(
+            'user_id') == query_user_id:
         if query.data == "text_true":
             await query.edit_message_text(text="請選擇提醒時間", reply_markup=time_chose_data_function())
         elif query.data == "text_false":
@@ -284,7 +294,22 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         elif query.data == "config_cancel":
             user_data.pop(query_get_key)
             await query.edit_message_text("已取消安排提醒\n如需設定其他提醒請再次輸入 /schedule")
+        elif delete_match:
+            get_delete = str(delete_match.group(1))
+            ChangeSend(get_delete)
+            DelData = GetUserMessage(query_user_id, query_chat_id)
+            if DelData:
+                await query.edit_message_text("已刪除", reply_markup=CreateDeleteButton(query_user_id, query_chat_id))
+            else:
+                await query.edit_message_text("無提醒訊息")
+        elif query.data == "del":
+            await query.edit_message_text("如需重新刪除提醒請再次輸入指令")
+        else:
+            print("have in to the data")
+            print(query.data)
     else:
+        print("not in to the data")
+        print(query.data)
         return
 
 
@@ -353,6 +378,16 @@ def hour_check_need(data):
         return set_select_hour
 
 
+logger = logging.getLogger(__name__)
+
+
+async def error_handler(update: object, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Log the error and send a telegram message to notify the developer."""
+    # Log the error before we do anything else, so we can see it even if something breaks.
+    logger.error(f"[{time_datetime()}] TG error")
+    await bot.sendMessage(DEV_ID, f"TG機器人發生了神奇的錯誤：{context.error}")
+
+
 stop = True
 
 
@@ -391,6 +426,7 @@ def app():
     """
     application = ApplicationBuilder().token(TOKEN).build()
 
+    application.add_error_handler(error_handler)
     application.add_handler(CommandHandler(["start", "help"], start))
     application.add_handler(CallbackQueryHandler(button))
     application.add_handler(MessageHandler(filters.TEXT, handle_message))
@@ -405,18 +441,18 @@ def main():
     :return:
     """
     global stop
-    User = threading.Thread(target=check, daemon=True)
+    UserThread = threading.Thread(target=check, daemon=True)
     try:
-        User.start()
+        UserThread.start()
         # CheckFile()
         app()
+    except error.BadRequest:
+        print(f"[{time_datetime()}] Emm神奇的修改重複內容，可能有人按了兩下按鈕")
     except KeyboardInterrupt:
         stop = False
         print(f"[{time_datetime()}] 檢測到使用者按下ctrl+c，正在關閉機器人...")
     except BaseException as e:
         print(f"[{time_datetime()}] 發生了一個錯誤: \n", e)
-    except error as e:
-        print(f"[{time_datetime()}] 與TG溝通發生錯誤: \n", e)
 
 
 if __name__ == "__main__":

@@ -47,7 +47,7 @@ def SaveData(Message: str, UserID: int, ChatID: int, Year: int, Month: int, Day:
     conn = sqlite3.connect(DB)
     cursor = conn.cursor()
     cursor.execute(
-        '''INSERT INTO schedule (Message, UserID, ChatID, DateTime) VALUES (?, ?, ?)''',
+        '''INSERT INTO schedule (Message, UserID, ChatID, DateTime) VALUES (?, ?, ?, ?)''',
         (Message, UserID, ChatID, f"{Year}-{Month}-{Day} {Hour}:{Minute}:00"))
     conn.commit()
     cursor.close()
@@ -115,5 +115,7 @@ def GetUserMessage(userId, chatID):
     sql = "SELECT ID, Message, DateTime FROM schedule WHERE Send == 'False' AND UserID = ? AND ChatID = ?;"
     data = [userId, chatID]
     cursor.execute(sql, data)
+    results = cursor.fetchall()
     conn.commit()
     cursor.close()
+    return results
