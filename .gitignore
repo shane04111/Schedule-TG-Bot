@@ -1,7 +1,11 @@
 /.vscode/
 .idea/*
+<<<<<<< HEAD
+__pycache__/*
+=======
 data/
 function/__pycache__/
+>>>>>>> release/20230926
 data/schedule.json
 data/schedule_data.bd
 schedule.json
@@ -9,3 +13,4 @@ schedule_data.db
 run.bat
 send.bat
 .env
+data/schedule.csv
