@@ -8,8 +8,7 @@ import logging
 from dotenv import load_dotenv
 from telegram import *
 from telegram.ext import *
-
-from function.SQL_Model import SaveData, GetNotUseData, ChangeSend, GetUserMessage
+from function.SQL_Model import SaveData, GetNotUseData, ChangeSend, GetUserMessage, GetIdData, CheckFile, GetAllData
 from function.day_select import day_select
 from function.deleteMessage import CreateDeleteButton
 from function.hour_select import hour_select, convert_to_chinese_time
@@ -39,6 +38,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
     :param context:
     :return:
     """
+    # translator = googletrans.Translator()
     text = None
     if update.message and update.message.text:
         text = update.message.text
@@ -46,15 +46,17 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
         print(f"[{time_datetime()}] 消息為空或無文本內容")
     user_id = update.message.from_user.id
     chat_id = update.message.chat.id
+    message_id = update.message.message_id
     DelData = GetUserMessage(user_id, chat_id)
+    id_match = re.search(r'(\d+)id', text)
     checkCommands = r"(![sS]|/[sS])([cC][hH][eE][dD][uU][lL][eE])?(@EZMinder_bot)?"
-    deleteCommands = r"^(![dD]|/[dD])([eE][lL])?([eE][tT][eE])?(@EZMinder_bot)?"
+    deleteCommands = r"(![dD]|/[dD])([eE][lL])?([eE][tT][eE])?(@EZMinder_bot)?"
     if re.match(checkCommands, text):
         clear_text = re.sub(checkCommands, "", text).strip()
         if clear_text == "":
             await update.message.reply_text("請重新使用命令並在後面加上提醒事項")
         else:
-            await StartSet(update, clear_text, user_id, chat_id)
+            await StartSet(update, clear_text, user_id, chat_id, message_id)
     elif text == "!id":
         await update.message.reply_text(f"{update.message.message_id}")
     elif re.match(deleteCommands, text):
@@ -63,14 +65,35 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
             user_data[f"{user_id}|{chat_id}"] = {"user_id": user_id}
         else:
             await update.message.reply_text("尚未設定提醒")
+    elif id_match:
+        get_Need_Id = str(id_match.group(1))
+        formatted_item = None
+        long_item = None
+        for item in GetIdData(get_Need_Id):
+            if item:
+                item1 = str(item[1])
+                if len(item1) <= 1800:
+                    formatted_item = f"提醒時間: {item[2]} |提醒事項: \n{item[1]}"
+                else:
+                    formatted_item = f"提醒時間: {item[2]} |提醒事項: \n"
+                    long_item = f"{item[1]}"
+        if formatted_item is None:
+            await update.message.reply_text(f"ID {get_Need_Id} 不存在")
+        else:
+            if long_item is None:
+                await update.message.reply_text(f"ID {get_Need_Id} 的資料是\n{formatted_item}")
+            else:
+                await update.message.reply_text(f"ID {get_Need_Id} 的資料是\n{formatted_item}")
+                await bot.send_message(chat_id, long_item)
     elif update.message.chat.type == "private":
-        await StartSet(update, text, user_id, chat_id)
+        await StartSet(update, text, user_id, chat_id, message_id)
 
 
-async def StartSet(update, text, user, chat):
+async def StartSet(update, text, user, chat, messageID):
     """
     判斷是否過長並給出相對的詢問
     :param update:
+    :param messageID: 訊息id
     :param text: 使用者輸入之訊息
     :param user: 使用者id
     :param chat: 聊天頻道
@@ -84,7 +107,8 @@ async def StartSet(update, text, user, chat):
     user_data[f"{user}|{chat}"] = {
         "text": text,
         "user_id": user,
-        "chat_id": chat
+        "chat_id": chat,
+        "message_id": messageID
     }
 
 
@@ -305,11 +329,10 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         elif query.data == "del":
             await query.edit_message_text("如需重新刪除提醒請再次輸入指令")
         else:
-            print("have in to the data")
-            print(query.data)
+            print("have in to the data: ", query.data)
+            return
     else:
-        print("not in to the data")
-        print(query.data)
+        print("not in to the data: ", query.data)
         return
 
 
@@ -401,12 +424,32 @@ def check():
         while stop:
             # 使用者輸入查詢資料
             need_get = input("請輸入需要讀取的資料\n")
+            id_match = re.search(r'(\d+)id', need_get)
             if need_get == "user":
                 print("user_data", json.dumps(user_data, indent=2, ensure_ascii=False))
             elif need_get == "data":
-                print(f"[{time_datetime()}] 當前尚未通知的有: \n")
+                print(f"[{time_datetime()}] 當前尚未通知的有: ")
                 for item in GetNotUseData():
                     formatted_item = f"ID:{item[0]:<4} {item[2]} {item[1]}"
+                    print(formatted_item)
+            elif need_get == "file":
+                CheckFile()
+            elif need_get == "clear":
+                print("\033c")
+            elif id_match:
+                get_Need_Id = str(id_match.group(1))
+                print(f"[{time_datetime()}] {get_Need_Id}資料: \n")
+                for item in GetIdData(get_Need_Id):
+                    if item:
+                        formatted_item = f"ID:{item[0]:<4} |提醒時間: {item[2]} |提醒事項: \n{item[1]}"
+                        print(formatted_item)
+                    else:
+                        print('na')
+            elif need_get == "all":
+                print(f"[{time_datetime()}] 所有資料: \n")
+                for item in GetAllData():
+                    item1 = str(item[1]).replace("\n", " ")
+                    formatted_item = f"ID:{item[0]:<4} |提醒時間: {item[2]} |提醒事項: {item1[:50]}"
                     print(formatted_item)
             else:
                 print("無法讀取\n可輸入：user以及data")

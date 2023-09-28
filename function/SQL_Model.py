@@ -119,3 +119,32 @@ def GetUserMessage(userId, chatID):
     conn.commit()
     cursor.close()
     return results
+
+
+def GetAllData():
+    """
+    抓取所有訊息
+    :return:
+    """
+    conn = sqlite3.connect(DB)
+    cursor = conn.cursor()
+    cursor.execute("SELECT ID, Message, DateTime FROM schedule;")
+    results = cursor.fetchall()
+    conn.commit()
+    cursor.close()
+    return results
+
+
+def GetIdData(GetId):
+    """
+    抓取特定id資料
+    :return:
+    """
+    conn = sqlite3.connect(DB)
+    cursor = conn.cursor()
+    cursor.execute("SELECT ID, Message, DateTime FROM schedule WHERE ID == ?;", [GetId, ])
+    results = cursor.fetchall()
+    conn.commit()
+    cursor.close()
+    return results
+
