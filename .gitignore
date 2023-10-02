@@ -4,7 +4,7 @@
 __pycache__/*
 =======
 data/
-function/__pycache__/
+**/__pycache__/
 >>>>>>> release/20230926
 data/schedule.json
 data/schedule_data.bd

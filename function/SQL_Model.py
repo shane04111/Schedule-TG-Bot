@@ -1,7 +1,8 @@
-from function.my_time import time_year, time_month, time_day, time_hour, time_minute
-from dotenv import load_dotenv
-import sqlite3
+from function.my_time import *
 import os
+import sqlite3
+
+from dotenv import load_dotenv
 
 load_dotenv()
 DB = os.getenv("DB")
@@ -47,8 +48,8 @@ def SaveData(Message: str, UserID: int, ChatID: int, Year: int, Month: int, Day:
     conn = sqlite3.connect(DB)
     cursor = conn.cursor()
     cursor.execute(
-        '''INSERT INTO schedule (Message, UserID, ChatID, DateTime) VALUES (?, ?, ?, ?)''',
-        (Message, UserID, ChatID, f"{Year}-{Month}-{Day} {Hour}:{Minute}:00"))
+        '''INSERT INTO schedule (Message, UserID, ChatID, DateTime, "UserTime") VALUES (?, ?, ?, ?, ?)''',
+        (Message, UserID, ChatID, f"{Year}-{Month}-{Day} {Hour}:{Minute}:00", time_datetime()))
     conn.commit()
     cursor.close()
 
@@ -81,16 +82,30 @@ def GetNotUseData():
     conn = sqlite3.connect(DB)
     cursor = conn.cursor()
     cursor.execute("SELECT ID, Message, DateTime FROM schedule WHERE Send == 'False';")
-
     results = cursor.fetchall()
     conn.commit()
     cursor.close()
     return results
 
 
-def ChangeSend(delID: str):
+def ChangeSendTrue(delID: str):
     """
     將提檢查提醒欄位轉為已提醒
+    :param delID:
+    :return:
+    """
+    conn = sqlite3.connect(DB)
+    cursor = conn.cursor()
+    sql = "UPDATE schedule SET Send = 'True' WHERE ID = ?;"
+    data = [delID]
+    cursor.execute(sql, data)
+    conn.commit()
+    cursor.close()
+
+
+def ChangeSendFalse(delID: str):
+    """
+    將提檢查提醒欄位轉為未提醒
     :param delID:
     :return:
     """
@@ -113,6 +128,24 @@ def GetUserMessage(userId, chatID):
     conn = sqlite3.connect(DB)
     cursor = conn.cursor()
     sql = "SELECT ID, Message, DateTime FROM schedule WHERE Send == 'False' AND UserID = ? AND ChatID = ?;"
+    data = [userId, chatID]
+    cursor.execute(sql, data)
+    results = cursor.fetchall()
+    conn.commit()
+    cursor.close()
+    return results
+
+
+def GetUserDoneMessage(userId, chatID):
+    """
+    抓取特定使用這在特定頻道之已提醒訊息
+    :param userId: 使用者ID
+    :param chatID: 使用者所在頻道ID
+    :return:
+    """
+    conn = sqlite3.connect(DB)
+    cursor = conn.cursor()
+    sql = "SELECT ID, Message, DateTime FROM schedule WHERE Send == 'True' AND UserID = ? AND ChatID = ?;"
     data = [userId, chatID]
     cursor.execute(sql, data)
     results = cursor.fetchall()
@@ -148,3 +181,16 @@ def GetIdData(GetId):
     cursor.close()
     return results
 
+
+def GetLotId(IdFirst: int, IdLest: int):
+    """
+        抓取特定區間id資料
+        :return:
+    """
+    conn = sqlite3.connect(DB)
+    cursor = conn.cursor()
+    cursor.execute("SELECT ID, Message, DateTime FROM schedule WHERE ID BETWEEN ? AND ?;", [IdFirst, IdLest, ])
+    results = cursor.fetchall()
+    conn.commit()
+    cursor.close()
+    return results

@@ -1,22 +1,20 @@
 import json
-import os
+import logging
 import re
 import sys
 import threading
-import logging
 
-from dotenv import load_dotenv
 from telegram import *
 from telegram.ext import *
-from function.SQL_Model import SaveData, GetNotUseData, ChangeSend, GetUserMessage, GetIdData, CheckFile, GetAllData
+
+from function.SQL_Model import *
 from function.day_select import day_select
-from function.deleteMessage import CreateDeleteButton
+from function.deleteMessage import CreateDeleteButton, CreateRedoButton
 from function.hour_select import hour_select, convert_to_chinese_time
 from function.minute_select import minute_select, check_minute_time
 from function.month_select import month_select
-from function.my_time import time_year, time_month, time_day, time_hour, time_minute, time_datetime
-from function.replay_markup import true_false_text, time_chose_data_function, TD_check, SD_check, OY_check, \
-    ALL_check, HR_check, MIN_check, config_check, day_check, check_YMD, month_check, year_check
+from function.my_time import *
+from function.replay_markup import *
 from function.year_select import year_select
 
 load_dotenv()
@@ -48,45 +46,90 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
     chat_id = update.message.chat.id
     message_id = update.message.message_id
     DelData = GetUserMessage(user_id, chat_id)
-    id_match = re.search(r'(\d+)id', text)
-    checkCommands = r"(![sS]|/[sS])([cC][hH][eE][dD][uU][lL][eE])?(@EZMinder_bot)?"
-    deleteCommands = r"(![dD]|/[dD])([eE][lL])?([eE][tT][eE])?(@EZMinder_bot)?"
+    RedoData = GetUserDoneMessage(user_id, chat_id)
+    id_match = re.search(r'(\d+)([iI][dD])', text)
+    checkCommands = r"(![sS]|/[sS])(chedule)?(@EZMinder_bot)?"
+    deleteCommands = r"(![dD]|/[dD])(elete)?(@EZMinder_bot)?"
+    redoCommands = r"(![rR]|/[rR])(edo)?(@EZMinder_bot)?"
     if re.match(checkCommands, text):
-        clear_text = re.sub(checkCommands, "", text).strip()
-        if clear_text == "":
-            await update.message.reply_text("請重新使用命令並在後面加上提醒事項")
-        else:
-            await StartSet(update, clear_text, user_id, chat_id, message_id)
+        await SetSchedule(update, checkCommands, text, user_id, chat_id, message_id)
     elif text == "!id":
         await update.message.reply_text(f"{update.message.message_id}")
     elif re.match(deleteCommands, text):
-        if DelData:
-            await update.message.reply_text("請選取要刪除的提醒消息", reply_markup=CreateDeleteButton(user_id, chat_id))
-            user_data[f"{user_id}|{chat_id}"] = {"user_id": user_id}
-        else:
-            await update.message.reply_text("尚未設定提醒")
+        await DoCommands(update, DelData, "請選取要刪除的提醒訊息", CreateDeleteButton(user_id, chat_id),
+                         user_id, chat_id)
+    elif re.match(redoCommands, text):
+        await DoCommands(update, RedoData, "請選擇要重新提醒的訊息", CreateRedoButton(user_id, chat_id),
+                         user_id, chat_id)
     elif id_match:
-        get_Need_Id = str(id_match.group(1))
-        formatted_item = None
-        long_item = None
-        for item in GetIdData(get_Need_Id):
-            if item:
-                item1 = str(item[1])
-                if len(item1) <= 1800:
-                    formatted_item = f"提醒時間: {item[2]} |提醒事項: \n{item[1]}"
-                else:
-                    formatted_item = f"提醒時間: {item[2]} |提醒事項: \n"
-                    long_item = f"{item[1]}"
-        if formatted_item is None:
-            await update.message.reply_text(f"ID {get_Need_Id} 不存在")
-        else:
-            if long_item is None:
-                await update.message.reply_text(f"ID {get_Need_Id} 的資料是\n{formatted_item}")
-            else:
-                await update.message.reply_text(f"ID {get_Need_Id} 的資料是\n{formatted_item}")
-                await bot.send_message(chat_id, long_item)
+        await SearchId(update, id_match, chat_id)
     elif update.message.chat.type == "private":
         await StartSet(update, text, user_id, chat_id, message_id)
+
+
+async def DoCommands(update, Data, ReplayText, ButtonMark, user_id, chat_id):
+    """
+    回復傳入訊息並根據傳入資料建立訊息之按鈕
+    :param update:
+    :param Data: 數據庫回膗資料
+    :param ReplayText: 回復訊息
+    :param ButtonMark: 建立按鈕
+    :param user_id: 使用者id
+    :param chat_id: 頻道id
+    :return:
+    """
+    if Data:
+        await update.message.reply_text(ReplayText, reply_markup=ButtonMark)
+        user_data[f"{user_id}|{chat_id}"] = {"user_id": user_id}
+    else:
+        await update.message.reply_text("尚未設定提醒")
+
+
+async def SetSchedule(update, checkCommands, text, user_id, chat_id, message_id):
+    """
+    設定提醒事項
+    :param update:
+    :param checkCommands: 提醒前墜或指令
+    :param text: 使用者輸入訊息
+    :param user_id: 使用者id
+    :param chat_id: 頻道id
+    :param message_id: 訊息id
+    :return:
+    """
+    clear_text = re.sub(checkCommands, "", text).strip()
+    if clear_text == "":
+        await update.message.reply_text("請重新使用命令並在後面加上提醒事項")
+    else:
+        await StartSet(update, clear_text, user_id, chat_id, message_id)
+
+
+async def SearchId(update, id_match, chat_id):
+    """
+    尋找特定id訊息，並將提醒內容傳給使用者
+    :param update:
+    :param id_match: 使用者輸入指令
+    :param chat_id: 頻道id
+    :return:
+    """
+    get_Need_Id = str(id_match.group(1))
+    formatted_item = None
+    long_item = None
+    for item in GetIdData(get_Need_Id):
+        if item:
+            item1 = str(item[1])
+            if len(item1) <= 1800:
+                formatted_item = f"提醒時間: {item[2]} |提醒事項: \n{item[1]}"
+            else:
+                formatted_item = f"提醒時間: {item[2]} |提醒事項: \n"
+                long_item = f"{item[1]}"
+    if formatted_item is None:
+        await update.message.reply_text(f"ID {get_Need_Id} 不存在")
+    else:
+        if long_item is None:
+            await update.message.reply_text(f"ID {get_Need_Id} 的資料是\n{formatted_item}")
+        else:
+            await update.message.reply_text(f"ID {get_Need_Id} 的資料是\n{formatted_item}")
+            await bot.send_message(chat_id, long_item)
 
 
 async def StartSet(update, text, user, chat, messageID):
@@ -320,10 +363,11 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
             await query.edit_message_text("已取消安排提醒\n如需設定其他提醒請再次輸入 /schedule")
         elif delete_match:
             get_delete = str(delete_match.group(1))
-            ChangeSend(get_delete)
+            ChangeSendTrue(get_delete)
             DelData = GetUserMessage(query_user_id, query_chat_id)
             if DelData:
-                await query.edit_message_text("已刪除", reply_markup=CreateDeleteButton(query_user_id, query_chat_id))
+                await query.edit_message_text("已刪除所選提醒，還有以下提醒：",
+                                              reply_markup=CreateDeleteButton(query_user_id, query_chat_id))
             else:
                 await query.edit_message_text("無提醒訊息")
         elif query.data == "del":
@@ -425,6 +469,7 @@ def check():
             # 使用者輸入查詢資料
             need_get = input("請輸入需要讀取的資料\n")
             id_match = re.search(r'(\d+)id', need_get)
+            lot_id_match = re.search(r'(\d+)lid', need_get)
             if need_get == "user":
                 print("user_data", json.dumps(user_data, indent=2, ensure_ascii=False))
             elif need_get == "data":
@@ -448,6 +493,18 @@ def check():
             elif need_get == "all":
                 print(f"[{time_datetime()}] 所有資料: \n")
                 for item in GetAllData():
+                    item1 = str(item[1]).replace("\n", " ")
+                    formatted_item = f"ID:{item[0]:<4} |提醒時間: {item[2]} |提醒事項: {item1[:50]}"
+                    print(formatted_item)
+            elif lot_id_match:
+                Lot_id = int(lot_id_match.group(1))
+                if Lot_id == 1:
+                    FirstId = 1
+                    LestId = 50
+                else:
+                    FirstId = ((Lot_id - 1) * 50) + 1
+                    LestId = Lot_id * 50
+                for item in GetLotId(FirstId, LestId):
                     item1 = str(item[1]).replace("\n", " ")
                     formatted_item = f"ID:{item[0]:<4} |提醒時間: {item[2]} |提醒事項: {item1[:50]}"
                     print(formatted_item)

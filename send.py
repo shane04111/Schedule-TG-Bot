@@ -1,5 +1,5 @@
 from telegram import Bot
-from function.SQL_Model import GetData, ChangeSend
+from function.SQL_Model import GetData, ChangeSendTrue
 from dotenv import load_dotenv
 import os
 import asyncio
@@ -18,7 +18,7 @@ async def main():
     data = GetData()
     for index in data:
         await bot.sendMessage(index[1], index[0])
-        ChangeSend(str(index[2]))
+        ChangeSendTrue(str(index[2]))
 
 
 if __name__ == "__main__":
