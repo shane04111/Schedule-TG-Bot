@@ -1,6 +1,7 @@
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup
-from function.my_time import time_year, time_month, time_day
+
 from function.month_to_day import month_to_day
+from function.my_time import time_year, time_month, time_day
 
 # ======================================================================================
 
@@ -117,7 +118,10 @@ MIN_check = InlineKeyboardMarkup(MIN_TF_data)
 config_TF_data = [
     [
         InlineKeyboardButton("是", callback_data='config_true'),
-        InlineKeyboardButton("否", callback_data='config_false'),
+        InlineKeyboardButton("否", callback_data='config_false')
+    ],
+    [
+        InlineKeyboardButton("返回上一頁", callback_data='config_back'),
         InlineKeyboardButton("取消設定", callback_data='config_cancel')
     ]
 ]

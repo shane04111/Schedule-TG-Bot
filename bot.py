@@ -11,7 +11,7 @@ from function.SQL_Model import *
 from function.day_select import day_select
 from function.deleteMessage import CreateDeleteButton, CreateRedoButton
 from function.hour_select import hour_select, convert_to_chinese_time
-from function.minute_select import minute_select, check_minute_time
+from function.minute_select import minute_select
 from function.month_select import month_select
 from function.my_time import *
 from function.replay_markup import *
@@ -189,43 +189,56 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
             user_data.pop(query_get_key)
             await query.edit_message_text(text="結束提醒設定\n如需設定其他提醒請重新使用 /schedule")
         elif query.data == "today":
-            get_need_data.update({
-                "year": time_year(),
-                "month": time_month(),
-                "day": time_day(),
-                "is_today": True,
-                "isOY": False
-            })
-            await query.edit_message_text(f"確認選擇將日期設定為{time_year()}/{time_month()}/{time_day()}",
-                                          reply_markup=TD_check)
+            SaveTimeDate(get_need_data, time_year(), time_month(), time_day(), True, False)
+            if time_minute() > 57:
+                set_select_hour = time_hour() + 1
+            else:
+                set_select_hour = time_hour()
+            year_need = get_need_data["year"]
+            month_need = get_need_data["month"]
+            day_need = get_need_data["day"]
+            await query.edit_message_text(f"當前選擇時間 {year_need}/{month_need}/{day_need}\n請選擇要幾點提醒",
+                                          reply_markup=hour_select(set_select_hour))
+            # get_need_data.update({
+            #     "year": time_year(),
+            #     "month": time_month(),
+            #     "day": time_day(),
+            #     "is_today": True,
+            #     "isOY": False
+            # })
+            # await query.edit_message_text(f"確認選擇將日期設定為{time_year()}/{time_month()}/{time_day()}",
+            #                               reply_markup=TD_check)
         elif query.data == "set_day":
-            get_need_data.update({
-                "year": check_YMD().year,
-                "month": check_YMD().month,
-                "day": "",
-                "is_today": False,
-                "isOY": False
-            })
+            SaveTimeDate(get_need_data, check_YMD().year, check_YMD().month, "", False, False)
             await query.edit_message_text(f"確認選擇將日期設定為{check_YMD().year}/{check_YMD().month}",
                                           reply_markup=SD_check)
+            # get_need_data.update({
+            #     "year": check_YMD().year,
+            #     "month": check_YMD().month,
+            #     "day": "",
+            #     "is_today": False,
+            #     "isOY": False
+            # })
         elif query.data == "only_year":
-            get_need_data.update({
-                "year": check_YMD().year,
-                "month": "",
-                "day": "",
-                "is_today": False,
-                "isOY": True
-            })
+            SaveTimeDate(get_need_data, check_YMD().year, "", "", False, True)
             await query.edit_message_text(f"確認選擇將日期設定為{check_YMD().year}", reply_markup=OY_check)
+            # get_need_data.update({
+            #     "year": check_YMD().year,
+            #     "month": "",
+            #     "day": "",
+            #     "is_today": False,
+            #     "isOY": True
+            # })
         elif query.data == "all_set":
-            get_need_data.update({
-                "year": "",
-                "month": "",
-                "day": "",
-                "is_today": False,
-                "isOY": True
-            })
+            SaveTimeDate(get_need_data, check_YMD().year, check_YMD().month, "", False, True)
             await query.edit_message_text("確認自訂義日期", reply_markup=ALL_check)
+            # get_need_data.update({
+            #     "year": "",
+            #     "month": "",
+            #     "day": "",
+            #     "is_today": False,
+            #     "isOY": True
+            # })
         elif query.data in ["ALL_false", "TD_false", "OY_false", "SD_false", "month_back", "year_back"]:
             await query.edit_message_text("請選擇提醒時間", reply_markup=time_chose_data_function())
         elif query.data == "ALL_true":
@@ -233,11 +246,11 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         elif year_match:
             get_year = int(year_match.group(1))
             get_need_data["year"] = get_year
-            await query.edit_message_text(f"確認選擇{get_year}年提醒", reply_markup=year_check)
-        elif query.data == "year_true":
-            await query.edit_message_text("請選擇要幾月提醒", reply_markup=month_select(1))
-        elif query.data == "year_false":
-            await query.edit_message_text("請選擇要幾年提醒", reply_markup=year_select(time_year() + 1))
+            await query.edit_message_text(f"當前選擇時間 {get_year}\n請選擇要幾月提醒", reply_markup=month_select(1))
+        # elif query.data == "year_true":
+        #     await query.edit_message_text("請選擇要幾月提醒", reply_markup=month_select(1))
+        # elif query.data == "year_false":
+        #     await query.edit_message_text("請選擇要幾年提醒", reply_markup=year_select(time_year() + 1))
         elif query.data == "OY_true":
             if check_YMD().is_valid:
                 month_need = check_YMD().month
@@ -247,20 +260,22 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         elif month_match:
             get_month = int(month_match.group(1))
             get_need_data["month"] = get_month
-            await query.edit_message_text(f"確認選擇{get_month}月提醒", reply_markup=month_check)
-        elif query.data == "month_true":
             year_need = get_need_data["year"]
-            month_need = get_need_data["month"]
-            await query.edit_message_text("請選擇要幾號提醒", reply_markup=day_select(year_need, month_need, 1))
-        elif query.data == "month_false":
-            if time_year() == get_need_data["year"]:
-                if check_YMD().is_valid:
-                    month_need = check_YMD().month
-                else:
-                    month_need = time_month() + 1
-            else:
-                month_need = 1
-            await query.edit_message_text("請選擇要幾月提醒", reply_markup=month_select(month_need))
+            await query.edit_message_text(f"當前選擇時間 {year_need}/{get_month}\n請選擇要幾號提醒",
+                                          reply_markup=day_select(year_need, get_month, 1))
+        # elif query.data == "month_true":
+        #     year_need = get_need_data["year"]
+        #     month_need = get_need_data["month"]
+        #     await query.edit_message_text("請選擇要幾號提醒", reply_markup=day_select(year_need, month_need, 1))
+        # elif query.data == "month_false":
+        #     if time_year() == get_need_data["year"]:
+        #         if check_YMD().is_valid:
+        #             month_need = check_YMD().month
+        #         else:
+        #             month_need = time_month() + 1
+        #     else:
+        #         month_need = 1
+        #     await query.edit_message_text("請選擇要幾月提醒", reply_markup=month_select(month_need))
         elif query.data == "SD_true":
             if check_YMD().is_valid:
                 year_need = check_YMD().year
@@ -274,7 +289,10 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         elif day_match:
             get_day = int(day_match.group(1))
             get_need_data["day"] = get_day
-            await query.edit_message_text(f"確認選擇{get_day}號提醒", reply_markup=day_check)
+            year_need = get_need_data["year"]
+            month_need = get_need_data["month"]
+            await query.edit_message_text(f"當前選擇時間 {year_need}/{month_need}/{get_day}",
+                                          reply_markup=hour_select(0))
         elif query.data == "day_back":
             if get_need_data["isOY"]:
                 if time_year() == get_need_data["year"]:
@@ -287,34 +305,43 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
                 await query.edit_message_text("請選擇要幾月提醒", reply_markup=month_select(month_need))
             else:
                 await query.edit_message_text("請選擇提醒時間", reply_markup=time_chose_data_function())
-        elif query.data == "day_true":
-            await query.edit_message_text("請選擇要幾點提醒", reply_markup=InlineKeyboardMarkup(hour_select(0)))
-        elif query.data == "day_false":
-            if time_year() == get_need_data["year"] and time_month() == get_need_data["month"]:
-                year_need = time_year()
-                month_need = time_month()
-                day_need = time_day() + 1
-            else:
-                year_need = get_need_data["year"]
-                month_need = get_need_data["month"]
-                day_need = 1
-            await query.edit_message_text("請選擇要幾號提醒", reply_markup=day_select(year_need, month_need, day_need))
-        elif query.data == "TD_true":
-            if time_minute() > 57:
-                set_select_hour = time_hour() + 1
-            else:
-                set_select_hour = time_hour()
-            await query.edit_message_text("請選擇要幾點提醒",
-                                          reply_markup=InlineKeyboardMarkup(hour_select(set_select_hour)))
+        # elif query.data == "day_true":
+        #     await query.edit_message_text("請選擇要幾點提醒", reply_markup=InlineKeyboardMarkup(hour_select(0)))
+        # elif query.data == "day_false":
+        #     if time_year() == get_need_data["year"] and time_month() == get_need_data["month"]:
+        #         year_need = time_year()
+        #         month_need = time_month()
+        #         day_need = time_day() + 1
+        #     else:
+        #         year_need = get_need_data["year"]
+        #         month_need = get_need_data["month"]
+        #         day_need = 1
+        #     await query.edit_message_text("請選擇要幾號提醒", reply_markup=day_select(year_need, month_need, day_need))
+        # elif query.data == "TD_true":
+        #     if time_minute() > 57:
+        #         set_select_hour = time_hour() + 1
+        #     else:
+        #         set_select_hour = time_hour()
+        #     year_need = get_need_data["year"]
+        #     month_need = get_need_data["month"]
+        #     day_need = get_need_data["day"]
+        #     await query.edit_message_text(f"當前選擇時間 {year_need}/{month_need}/{day_need}\n請選擇要幾點提醒",
+        #                                   reply_markup=InlineKeyboardMarkup(hour_select(set_select_hour)))
         elif hour_match:
             get_hour = int(hour_match.group(1))
             get_need_data["hour"] = get_hour
-            await query.edit_message_text(f"確認選擇{convert_to_chinese_time(get_hour)}", reply_markup=HR_check)
-        elif query.data == "HR_true":
-            await query.edit_message_text("請選擇要幾分提醒", reply_markup=hour_check_button(get_need_data))
-        elif query.data == "HR_false":
-            await query.edit_message_text("請選擇要幾點提醒", reply_markup=InlineKeyboardMarkup(
-                hour_select(hour_check_need(get_need_data))))
+            year_need = get_need_data["year"]
+            month_need = get_need_data["month"]
+            day_need = get_need_data["day"]
+            await query.edit_message_text(
+                f"當前選擇時間 {year_need}/{month_need}/{day_need} {convert_to_chinese_time(get_hour)}\n"
+                "請選擇要幾分提醒",
+                reply_markup=hour_check_button(get_need_data))
+        # elif query.data == "HR_true":
+        #     await query.edit_message_text("請選擇要幾分提醒", reply_markup=hour_check_button(get_need_data))
+        # elif query.data == "HR_false":
+        #     await query.edit_message_text("請選擇要幾點提醒", reply_markup=InlineKeyboardMarkup(
+        #         hour_select(hour_check_need(get_need_data))))
         elif query.data == "HR_back":
             if get_need_data["is_today"]:
                 await query.edit_message_text(text="請選擇提醒時間", reply_markup=time_chose_data_function())
@@ -335,14 +362,13 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         elif min_match:
             get_min = int(min_match.group(1))
             get_need_data["minute"] = get_min
-            await query.edit_message_text(f"確認選擇{check_minute_time(get_min)}", reply_markup=MIN_check)
-        elif query.data == "MIN_true":
             await query.edit_message_text(message_check_text(get_need_data), reply_markup=config_check)
-        elif query.data == "MIN_false":
-            await query.edit_message_text("請選擇要幾分提醒", reply_markup=hour_check_button(get_need_data))
+        # elif query.data == "MIN_true":
+        #     await query.edit_message_text(message_check_text(get_need_data), reply_markup=config_check)
+        # elif query.data == "MIN_false":
+        #     await query.edit_message_text("請選擇要幾分提醒", reply_markup=hour_check_button(get_need_data))
         elif query.data == "MIN_back":
-            await query.edit_message_text("請選擇要幾點提醒", reply_markup=InlineKeyboardMarkup(
-                hour_select(hour_check_need(get_need_data))))
+            await query.edit_message_text("請選擇要幾點提醒", reply_markup=hour_select(hour_check_need(get_need_data)))
         elif query.data == "config_true":
             text = get_need_data["text"]
             userID = get_need_data["user_id"]
@@ -358,6 +384,8 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
             await query.edit_message_text("已成功安排提醒\n如需設定其他提醒請再次輸入 /schedule")
         elif query.data == "config_false":
             await query.edit_message_text(text="請選擇提醒時間", reply_markup=time_chose_data_function())
+        elif query.data == "config_back":
+            await query.edit_message_text("請選擇要幾分提醒", reply_markup=hour_check_button(get_need_data))
         elif query.data == "config_cancel":
             user_data.pop(query_get_key)
             await query.edit_message_text("已取消安排提醒\n如需設定其他提醒請再次輸入 /schedule")
@@ -378,6 +406,16 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     else:
         print("not in to the data: ", query.data)
         return
+
+
+def SaveTimeDate(data, year: str, month: str, day: str, isToday: bool, isOY: bool):
+    data.update({
+        "year": year,
+        "month": month,
+        "day": day,
+        "is_today": isToday,
+        "isOY": isOY
+    })
 
 
 def message_check_text(data):
