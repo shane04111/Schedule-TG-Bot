@@ -18,18 +18,21 @@ def CheckFile():
         print("数据库中存在名为 'schedule' 的表。")
     else:
         print("数据库中不存在名为 'schedule' 的表，正在創建 'schedule' 表")
-        cursor.execute('''CREATE TABLE "schedule" (
-                        "ID"	    INTEGER,
-                        "Message"	TEXT    NOT NULL DEFAULT 'No Message',
-                        "UserID"	INTEGER NOT NULL DEFAULT -1,
-                        "ChatID"	INTEGER NOT NULL DEFAULT -1,
-                        "DateTime"	TEXT    NOT NULL DEFAULT -1,
-                        "Send"	    TEXT             DEFAULT 'False',
-                        PRIMARY KEY("ID")
-                        );
+        cursor.execute('''
+        CREATE TABLE "schedule"
+        (
+        ID       INTEGER
+            primary key,
+        Message  TEXT    default 'No Message' not null,
+        UserID   INTEGER default -1           not null,
+        ChatID   INTEGER default -1           not null,
+        DateTime TEXT    default -1           not null,
+        UserTime TEXT    default 'na',
+        Send     TEXT    default 'False'
+        );
                         ''')
     conn.commit()
-    cursor.close()
+    conn.close()
 
 
 def SaveData(Message: str, UserID: int, ChatID: int, Year: int, Month: int, Day: int, Hour: int, Minute: int):
@@ -48,7 +51,7 @@ def SaveData(Message: str, UserID: int, ChatID: int, Year: int, Month: int, Day:
     conn = sqlite3.connect(DB)
     cursor = conn.cursor()
     cursor.execute(
-        '''INSERT INTO schedule (Message, UserID, ChatID, DateTime, "UserTime") VALUES (?, ?, ?, ?, ?)''',
+        '''INSERT INTO schedule (Message, UserID, ChatID, DateTime, UserTime) VALUES (?, ?, ?, ?, ?)''',
         (Message, UserID, ChatID, f"{Year}-{Month}-{Day} {Hour}:{Minute}:00", time_datetime()))
     conn.commit()
     cursor.close()
@@ -70,7 +73,7 @@ def GetData():
 
     results = cursor.fetchall()
     conn.commit()
-    cursor.close()
+    conn.close()
     return results
 
 
@@ -84,7 +87,7 @@ def GetNotUseData():
     cursor.execute("SELECT ID, Message, DateTime FROM schedule WHERE Send == 'False';")
     results = cursor.fetchall()
     conn.commit()
-    cursor.close()
+    conn.close()
     return results
 
 
@@ -100,7 +103,7 @@ def ChangeSendTrue(delID: str):
     data = [delID]
     cursor.execute(sql, data)
     conn.commit()
-    cursor.close()
+    conn.close()
 
 
 def ChangeSendFalse(delID: str):
@@ -115,7 +118,7 @@ def ChangeSendFalse(delID: str):
     data = [delID]
     cursor.execute(sql, data)
     conn.commit()
-    cursor.close()
+    conn.close()
 
 
 def GetUserMessage(userId, chatID):
@@ -132,7 +135,7 @@ def GetUserMessage(userId, chatID):
     cursor.execute(sql, data)
     results = cursor.fetchall()
     conn.commit()
-    cursor.close()
+    conn.close()
     return results
 
 
@@ -150,7 +153,7 @@ def GetUserDoneMessage(userId, chatID):
     cursor.execute(sql, data)
     results = cursor.fetchall()
     conn.commit()
-    cursor.close()
+    conn.close()
     return results
 
 
@@ -164,7 +167,7 @@ def GetAllData():
     cursor.execute("SELECT ID, Message, DateTime FROM schedule;")
     results = cursor.fetchall()
     conn.commit()
-    cursor.close()
+    conn.close()
     return results
 
 
@@ -178,7 +181,7 @@ def GetIdData(GetId):
     cursor.execute("SELECT ID, Message, DateTime FROM schedule WHERE ID == ?;", [GetId, ])
     results = cursor.fetchall()
     conn.commit()
-    cursor.close()
+    conn.close()
     return results
 
 
@@ -192,5 +195,5 @@ def GetLotId(IdFirst: int, IdLest: int):
     cursor.execute("SELECT ID, Message, DateTime FROM schedule WHERE ID BETWEEN ? AND ?;", [IdFirst, IdLest, ])
     results = cursor.fetchall()
     conn.commit()
-    cursor.close()
+    conn.close()
     return results

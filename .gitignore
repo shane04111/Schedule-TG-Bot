@@ -1,11 +1,8 @@
 /.vscode/
 .idea/*
-<<<<<<< HEAD
 __pycache__/*
-=======
 data/
 **/__pycache__/
->>>>>>> release/20230926
 data/schedule.json
 data/schedule_data.bd
 schedule.json
