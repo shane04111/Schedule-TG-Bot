@@ -182,12 +182,18 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     year_match = re.search(r'(\d+)year', query.data)
     delete_match = re.search(r'(\d+)del', query.data)
     await query.answer()
-    if query_get_key in user_data and get_need_data.get('user_id') == query_user_id:
+    if query_get_key in user_data and get_need_data.get('user_id') == query_user_id and get_need_data is not None:
         if query.data == "text_true":
             await query.edit_message_text(text="請選擇提醒時間", reply_markup=time_chose_data_function())
         elif query.data == "text_false":
             user_data.pop(query_get_key)
             await query.edit_message_text(text="結束提醒設定\n如需設定其他提醒請重新使用 /schedule")
+        elif query.data == "time_back":
+            text = get_need_data["text"]
+            if len(text) <= 1900:
+                await query.edit_message_text(f"請確認提醒事項：{text}", reply_markup=true_false_text)
+            else:
+                await query.edit_message_text("是否提醒上述事項", reply_markup=true_false_text)
         elif query.data == "today":
             SaveTimeDate(get_need_data, time_year(), time_month(), time_day(), True, False)
             if time_minute() > 57:
@@ -219,7 +225,6 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         elif query.data == "all_set":
             SaveTimeDate(get_need_data, check_YMD().year, check_YMD().month, "", False, True)
             await query.edit_message_text("請選擇要幾年提醒", reply_markup=year_select(time_year() + 1))
-        # elif query.data in ["ALL_false", "TD_false", "OY_false", "SD_false", "month_back", "year_back"]:
         elif query.data == "year_back":
             await query.edit_message_text("請選擇提醒時間", reply_markup=time_chose_data_function())
         elif query.data == "month_back":
@@ -229,34 +234,16 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
             else:
                 await query.edit_message_text(f"{SendTime(get_need_data, 1)}\n請選擇要幾年提醒",
                                               reply_markup=year_select(time_year() + 1))
-        # elif query.data == "ALL_true":
-        #     await query.edit_message_text("請選擇要幾年提醒", reply_markup=year_select(time_year() + 1))
         elif year_match:
             get_year = int(year_match.group(1))
             get_need_data["year"] = get_year
             await query.edit_message_text(f"當前選擇時間 {get_year}\n請選擇要幾月提醒", reply_markup=month_select(1))
-        # elif query.data == "OY_true":
-        #     if check_YMD().is_valid:
-        #         month_need = check_YMD().month
-        #     else:
-        #         month_need = time_month() + 1
-        #     await query.edit_message_text("請選擇要幾月提醒", reply_markup=month_select(month_need))
         elif month_match:
             get_month = int(month_match.group(1))
             get_need_data["month"] = get_month
             year_need = get_need_data["year"]
             await query.edit_message_text(f"當前選擇時間 {year_need}/{get_month}\n請選擇要幾號提醒",
                                           reply_markup=day_select(year_need, get_month, 1))
-        # elif query.data == "SD_true":
-        #     if check_YMD().is_valid:
-        #         year_need = check_YMD().year
-        #         month_need = check_YMD().month
-        #         day_need = 1
-        #     else:
-        #         year_need = check_YMD().year
-        #         month_need = check_YMD().month
-        #         day_need = time_day() + 1
-        #     await query.edit_message_text("請選擇要幾號提醒", reply_markup=day_select(year_need, month_need, day_need))
         elif day_match:
             get_day = int(day_match.group(1))
             get_need_data["day"] = get_day
@@ -314,7 +301,7 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         elif query.data == "config_back":
             await query.edit_message_text(f"{SendTime(get_need_data, 4)}\n請選擇要幾分提醒",
                                           reply_markup=hour_check_button(get_need_data))
-        elif query.data == "config_cancel":
+        elif query.data == "cancel":
             user_data.pop(query_get_key)
             await query.edit_message_text("已取消安排提醒\n如需設定其他提醒請再次輸入 /schedule")
         elif delete_match:
@@ -334,6 +321,13 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     else:
         print("not in to the data: ", query.data)
         return
+
+
+async def EditMessage(query, editMessage, mark):
+    try:
+        await query.edit_message_text(editMessage, reply_markup=mark)
+    except:
+        print(f"[{time_datetime()}] button error")
 
 
 def FinalSaveData(data):
@@ -469,7 +463,7 @@ def hour_check_need(data):
 async def error_handler(update: object, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Log the error and send a telegram message to notify the developer."""
     # Log the error before we do anything else, so we can see it even if something breaks.
-    logger.error(f"[{time_datetime()}] TG error")
+    logger.error(f"[{time_datetime()}]Telegram error:", exc_info=context.error)
     await bot.sendMessage(DEV_ID, f"TG機器人發生了神奇的錯誤：{context.error}")
 
 

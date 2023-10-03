@@ -47,6 +47,9 @@ def minute_select(check_min: bool):
             minute += 1
         result.append(inner_list)
         i += 1
-    result.append([InlineKeyboardButton("回到上一頁", callback_data="MIN_back")])
+    result.append([
+        InlineKeyboardButton("回到上一頁", callback_data="MIN_back"),
+        InlineKeyboardButton("取消設定", callback_data='cancel')
+    ])
 
     return result

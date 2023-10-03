@@ -24,6 +24,9 @@ def day_select(year, month, day):
             day += 1
         result.append(inner_list)
         i += 1
-    result.append([InlineKeyboardButton("回到上一頁", callback_data="day_back")])
+    result.append([
+        InlineKeyboardButton("回到上一頁", callback_data="day_back"),
+        InlineKeyboardButton("取消設定", callback_data='cancel')
+    ])
     day_markup = InlineKeyboardMarkup(result)
     return day_markup

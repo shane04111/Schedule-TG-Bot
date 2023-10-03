@@ -22,6 +22,9 @@ def year_select(year):
             year += 1
         result.append(inner_list)
         i += 1
-    result.append([InlineKeyboardButton("回到上一頁", callback_data="year_back")])
+    result.append([
+        InlineKeyboardButton("回到上一頁", callback_data="year_back"),
+        InlineKeyboardButton("取消設定", callback_data='cancel')
+    ])
     year_markup = InlineKeyboardMarkup(result)
     return year_markup
