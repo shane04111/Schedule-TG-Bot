@@ -1,7 +1,8 @@
-from function.my_time import time_year, time_month, time_day, time_hour, time_minute
-from dotenv import load_dotenv
-import sqlite3
+from function.my_time import *
 import os
+import sqlite3
+
+from dotenv import load_dotenv
 
 load_dotenv()
 DB = os.getenv("DB")
@@ -17,18 +18,21 @@ def CheckFile():
         print("数据库中存在名为 'schedule' 的表。")
     else:
         print("数据库中不存在名为 'schedule' 的表，正在創建 'schedule' 表")
-        cursor.execute('''CREATE TABLE "schedule" (
-                        "ID"	    INTEGER,
-                        "Message"	TEXT    NOT NULL DEFAULT 'No Message',
-                        "UserID"	INTEGER NOT NULL DEFAULT -1,
-                        "ChatID"	INTEGER NOT NULL DEFAULT -1,
-                        "DateTime"	TEXT    NOT NULL DEFAULT -1,
-                        "Send"	    TEXT             DEFAULT 'False',
-                        PRIMARY KEY("ID")
-                        );
+        cursor.execute('''
+        CREATE TABLE "schedule"
+        (
+        ID       INTEGER
+            primary key,
+        Message  TEXT    default 'No Message' not null,
+        UserID   INTEGER default -1           not null,
+        ChatID   INTEGER default -1           not null,
+        DateTime TEXT    default -1           not null,
+        UserTime TEXT    default 'na',
+        Send     TEXT    default 'False'
+        );
                         ''')
     conn.commit()
-    cursor.close()
+    conn.close()
 
 
 def SaveData(Message: str, UserID: int, ChatID: int, Year: int, Month: int, Day: int, Hour: int, Minute: int):
@@ -47,8 +51,8 @@ def SaveData(Message: str, UserID: int, ChatID: int, Year: int, Month: int, Day:
     conn = sqlite3.connect(DB)
     cursor = conn.cursor()
     cursor.execute(
-        '''INSERT INTO schedule (Message, UserID, ChatID, DateTime) VALUES (?, ?, ?, ?)''',
-        (Message, UserID, ChatID, f"{Year}-{Month}-{Day} {Hour}:{Minute}:00"))
+        '''INSERT INTO schedule (Message, UserID, ChatID, DateTime, UserTime) VALUES (?, ?, ?, ?, ?)''',
+        (Message, UserID, ChatID, f"{Year}-{Month}-{Day} {Hour}:{Minute}:00", time_datetime()))
     conn.commit()
     cursor.close()
 
@@ -69,7 +73,7 @@ def GetData():
 
     results = cursor.fetchall()
     conn.commit()
-    cursor.close()
+    conn.close()
     return results
 
 
@@ -81,14 +85,13 @@ def GetNotUseData():
     conn = sqlite3.connect(DB)
     cursor = conn.cursor()
     cursor.execute("SELECT ID, Message, DateTime FROM schedule WHERE Send == 'False';")
-
     results = cursor.fetchall()
     conn.commit()
-    cursor.close()
+    conn.close()
     return results
 
 
-def ChangeSend(delID: str):
+def ChangeSendTrue(delID: str):
     """
     將提檢查提醒欄位轉為已提醒
     :param delID:
@@ -100,7 +103,22 @@ def ChangeSend(delID: str):
     data = [delID]
     cursor.execute(sql, data)
     conn.commit()
-    cursor.close()
+    conn.close()
+
+
+def ChangeSendFalse(delID: str):
+    """
+    將提檢查提醒欄位轉為未提醒
+    :param delID:
+    :return:
+    """
+    conn = sqlite3.connect(DB)
+    cursor = conn.cursor()
+    sql = "UPDATE schedule SET Send = 'True' WHERE ID = ?;"
+    data = [delID]
+    cursor.execute(sql, data)
+    conn.commit()
+    conn.close()
 
 
 def GetUserMessage(userId, chatID):
@@ -117,7 +135,25 @@ def GetUserMessage(userId, chatID):
     cursor.execute(sql, data)
     results = cursor.fetchall()
     conn.commit()
-    cursor.close()
+    conn.close()
+    return results
+
+
+def GetUserDoneMessage(userId, chatID):
+    """
+    抓取特定使用這在特定頻道之已提醒訊息
+    :param userId: 使用者ID
+    :param chatID: 使用者所在頻道ID
+    :return:
+    """
+    conn = sqlite3.connect(DB)
+    cursor = conn.cursor()
+    sql = "SELECT ID, Message, DateTime FROM schedule WHERE Send == 'True' AND UserID = ? AND ChatID = ?;"
+    data = [userId, chatID]
+    cursor.execute(sql, data)
+    results = cursor.fetchall()
+    conn.commit()
+    conn.close()
     return results
 
 
@@ -131,7 +167,7 @@ def GetAllData():
     cursor.execute("SELECT ID, Message, DateTime FROM schedule;")
     results = cursor.fetchall()
     conn.commit()
-    cursor.close()
+    conn.close()
     return results
 
 
@@ -145,6 +181,19 @@ def GetIdData(GetId):
     cursor.execute("SELECT ID, Message, DateTime FROM schedule WHERE ID == ?;", [GetId, ])
     results = cursor.fetchall()
     conn.commit()
-    cursor.close()
+    conn.close()
     return results
 
+
+def GetLotId(IdFirst: int, IdLest: int):
+    """
+        抓取特定區間id資料
+        :return:
+    """
+    conn = sqlite3.connect(DB)
+    cursor = conn.cursor()
+    cursor.execute("SELECT ID, Message, DateTime FROM schedule WHERE ID BETWEEN ? AND ?;", [IdFirst, IdLest, ])
+    results = cursor.fetchall()
+    conn.commit()
+    conn.close()
+    return results

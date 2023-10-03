@@ -1,6 +1,7 @@
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup
-from function.my_time import time_year, time_month, time_day
+
 from function.month_to_day import month_to_day
+from function.my_time import time_year, time_month, time_day
 
 # ======================================================================================
 
@@ -14,110 +15,113 @@ true_false_text_data = [
 true_false_text = InlineKeyboardMarkup(true_false_text_data)
 
 # ======================================================================================
-
-TD_TF_data = [
-    [
-        InlineKeyboardButton("是", callback_data='TD_true'),
-        InlineKeyboardButton("否", callback_data='TD_false')
-    ]
-]
-
-TD_check = InlineKeyboardMarkup(TD_TF_data)
-
+#
+# TD_TF_data = [
+#     [
+#         InlineKeyboardButton("是", callback_data='TD_true'),
+#         InlineKeyboardButton("否", callback_data='TD_false')
+#     ]
+# ]
+#
+# TD_check = InlineKeyboardMarkup(TD_TF_data)
+#
 # ======================================================================================
-
-SD_TF_data = [
-    [
-        InlineKeyboardButton("是", callback_data='SD_true'),
-        InlineKeyboardButton("否", callback_data='SD_false')
-    ]
-]
-
-SD_check = InlineKeyboardMarkup(SD_TF_data)
-
+#
+# SD_TF_data = [
+#     [
+#         InlineKeyboardButton("是", callback_data='SD_true'),
+#         InlineKeyboardButton("否", callback_data='SD_false')
+#     ]
+# ]
+#
+# SD_check = InlineKeyboardMarkup(SD_TF_data)
+#
 # ======================================================================================
-
-OY_TF_data = [
-    [
-        InlineKeyboardButton("是", callback_data='OY_true'),
-        InlineKeyboardButton("否", callback_data='OY_false')
-    ]
-]
-
-OY_check = InlineKeyboardMarkup(OY_TF_data)
-
+#
+# OY_TF_data = [
+#     [
+#         InlineKeyboardButton("是", callback_data='OY_true'),
+#         InlineKeyboardButton("否", callback_data='OY_false')
+#     ]
+# ]
+#
+# OY_check = InlineKeyboardMarkup(OY_TF_data)
+#
 # ======================================================================================
-
-ALL_TF_data = [
-    [
-        InlineKeyboardButton("是", callback_data='ALL_true'),
-        InlineKeyboardButton("否", callback_data='ALL_false')
-    ]
-]
-
-ALL_check = InlineKeyboardMarkup(ALL_TF_data)
-
+#
+# ALL_TF_data = [
+#     [
+#         InlineKeyboardButton("是", callback_data='ALL_true'),
+#         InlineKeyboardButton("否", callback_data='ALL_false')
+#     ]
+# ]
+#
+# ALL_check = InlineKeyboardMarkup(ALL_TF_data)
+#
 # ======================================================================================
-
-year_TF_data = [
-    [
-        InlineKeyboardButton("是", callback_data='year_true'),
-        InlineKeyboardButton("否", callback_data='year_false')
-    ]
-]
-
-year_check = InlineKeyboardMarkup(year_TF_data)
-
+#
+# year_TF_data = [
+#     [
+#         InlineKeyboardButton("是", callback_data='year_true'),
+#         InlineKeyboardButton("否", callback_data='year_false')
+#     ]
+# ]
+#
+# year_check = InlineKeyboardMarkup(year_TF_data)
+#
 # ======================================================================================
-
-month_TF_data = [
-    [
-        InlineKeyboardButton("是", callback_data='month_true'),
-        InlineKeyboardButton("否", callback_data='month_false')
-    ]
-]
-
-month_check = InlineKeyboardMarkup(month_TF_data)
-
+#
+# month_TF_data = [
+#     [
+#         InlineKeyboardButton("是", callback_data='month_true'),
+#         InlineKeyboardButton("否", callback_data='month_false')
+#     ]
+# ]
+#
+# month_check = InlineKeyboardMarkup(month_TF_data)
+#
 # ======================================================================================
-
-day_TF_data = [
-    [
-        InlineKeyboardButton("是", callback_data='day_true'),
-        InlineKeyboardButton("否", callback_data='day_false')
-    ]
-]
-
-day_check = InlineKeyboardMarkup(day_TF_data)
-
+#
+# day_TF_data = [
+#     [
+#         InlineKeyboardButton("是", callback_data='day_true'),
+#         InlineKeyboardButton("否", callback_data='day_false')
+#     ]
+# ]
+#
+# day_check = InlineKeyboardMarkup(day_TF_data)
+#
 # ======================================================================================
-
-HR_TF_data = [
-    [
-        InlineKeyboardButton("是", callback_data='HR_true'),
-        InlineKeyboardButton("否", callback_data='HR_false')
-    ]
-]
-
-HR_check = InlineKeyboardMarkup(HR_TF_data)
-
+#
+# HR_TF_data = [
+#     [
+#         InlineKeyboardButton("是", callback_data='HR_true'),
+#         InlineKeyboardButton("否", callback_data='HR_false')
+#     ]
+# ]
+#
+# HR_check = InlineKeyboardMarkup(HR_TF_data)
+#
 # ======================================================================================
-
-MIN_TF_data = [
-    [
-        InlineKeyboardButton("是", callback_data='MIN_true'),
-        InlineKeyboardButton("否", callback_data='MIN_false')
-    ]
-]
-
-MIN_check = InlineKeyboardMarkup(MIN_TF_data)
-
+#
+# MIN_TF_data = [
+#     [
+#         InlineKeyboardButton("是", callback_data='MIN_true'),
+#         InlineKeyboardButton("否", callback_data='MIN_false')
+#     ]
+# ]
+#
+# MIN_check = InlineKeyboardMarkup(MIN_TF_data)
+#
 # ======================================================================================
 
 config_TF_data = [
     [
         InlineKeyboardButton("是", callback_data='config_true'),
-        InlineKeyboardButton("否", callback_data='config_false'),
+        InlineKeyboardButton("否", callback_data='config_false')
+    ],
+    [
+        InlineKeyboardButton("返回上一頁", callback_data='config_back'),
         InlineKeyboardButton("取消設定", callback_data='config_cancel')
     ]
 ]
@@ -152,7 +156,7 @@ def check_YMD():
     """
     檢查當前日期是否為當月之最後一天，\n
     如果是則月份加一並回傳True， \n
-    如果是今天最後一天則加年份與月份加一並回傳True
+    如果是今天今年的最後一天則加年份與月份加一並回傳True
     如果不符合上述條件則返回當前年月並回傳False
     :return:
     """
