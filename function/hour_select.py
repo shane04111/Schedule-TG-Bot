@@ -1,4 +1,4 @@
-from telegram import InlineKeyboardButton
+from telegram import InlineKeyboardButton, InlineKeyboardMarkup
 
 
 def convert_to_chinese_time(hour):
@@ -59,6 +59,9 @@ def hour_select(hour):
             hour += 1
         result.append(inner_list)
         i += 1
-    result.append([InlineKeyboardButton("回到上一頁", callback_data="HR_back")])
-
-    return result
+    result.append([
+        InlineKeyboardButton("回到上一頁", callback_data="HR_back"),
+        InlineKeyboardButton("取消設定", callback_data='cancel')
+    ])
+    finalResult = InlineKeyboardMarkup(result)
+    return finalResult

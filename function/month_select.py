@@ -22,6 +22,9 @@ def month_select(month):
             month += 1
         result.append(inner_list)
         i += 1
-    result.append([InlineKeyboardButton("回到上一頁", callback_data="month_back")])
+    result.append([
+        InlineKeyboardButton("回到上一頁", callback_data="month_back"),
+        InlineKeyboardButton("取消設定", callback_data='cancel')
+    ])
     month_markup = InlineKeyboardMarkup(result)
     return month_markup
