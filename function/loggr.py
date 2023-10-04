@@ -1,5 +1,4 @@
 import logging
-import os.path
 
 from function.my_time import time_date
 

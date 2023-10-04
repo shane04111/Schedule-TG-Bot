@@ -4,14 +4,12 @@ import telegram.error
 from telegram import *
 from telegram.ext import *
 from function.SQL_Model import *
-from function.day_select import day_select
 from function.deleteMessage import CreateDeleteButton, CreateRedoButton
 from function.hour_select import hour_select, convert_to_chinese_time
 from function.minute_select import minute_select
-from function.month_select import month_select
+from function.Select import year_select, month_select, day_select
 from function.my_time import *
 from function.replay_markup import *
-from function.year_select import year_select
 from function.loggr import *
 
 load_dotenv()
@@ -466,71 +464,6 @@ async def error_handler(update: object, context: ContextTypes.DEFAULT_TYPE) -> N
     await bot.sendMessage(DEV_ID, f"TG機器人發生了神奇的錯誤：{context.error}")
 
 
-# stop = True
-
-
-# not use
-# def check():
-#     """
-#     後臺查詢功能
-#     :return:
-#     """
-#     global stop
-#     try:
-#         while stop:
-#             # 使用者輸入查詢資料
-#             need_get = input("請輸入需要讀取的資料\n")
-#             id_match = re.search(r'(\d+)id', need_get)
-#             lot_id_match = re.search(r'(\d+)lid', need_get)
-#             if need_get == "user":
-#                 print("user_data", json.dumps(user_data, indent=2, ensure_ascii=False))
-#             elif need_get == "data":
-#                 print(f"[{time_datetime()}] 當前尚未通知的有: ")
-#                 for item in GetNotUseData():
-#                     formatted_item = f"ID:{item[0]:<4} {item[2]} {item[1]}"
-#                     print(formatted_item)
-#             elif need_get == "file":
-#                 CheckFile()
-#             elif need_get == "clear":
-#                 print("\033c")
-#             elif id_match:
-#                 get_Need_Id = str(id_match.group(1))
-#                 print(f"[{time_datetime()}] {get_Need_Id}資料: \n")
-#                 for item in GetIdData(get_Need_Id):
-#                     if item:
-#                         formatted_item = f"ID:{item[0]:<4} |提醒時間: {item[2]} |提醒事項: \n{item[1]}"
-#                         print(formatted_item)
-#                     else:
-#                         print('na')
-#             elif need_get == "all":
-#                 print(f"[{time_datetime()}] 所有資料: \n")
-#                 for item in GetAllData():
-#                     item1 = str(item[1]).replace("\n", " ")
-#                     formatted_item = f"ID:{item[0]:<4} |提醒時間: {item[2]} |提醒事項: {item1[:50]}"
-#                     print(formatted_item)
-#             elif lot_id_match:
-#                 Lot_id = int(lot_id_match.group(1))
-#                 if Lot_id == 1:
-#                     FirstId = 1
-#                     LestId = 50
-#                 else:
-#                     FirstId = ((Lot_id - 1) * 50) + 1
-#                     LestId = Lot_id * 50
-#                 for item in GetLotId(FirstId, LestId):
-#                     item1 = str(item[1]).replace("\n", " ")
-#                     formatted_item = f"ID:{item[0]:<4} |提醒時間: {item[2]} |提醒事項: {item1[:50]}"
-#                     print(formatted_item)
-#             else:
-#                 print("無法讀取\n可輸入：user以及data")
-#     except KeyboardInterrupt:
-#         stop = False
-#     except EOFError:
-#         stop = False
-#         print(f"[{time_datetime()}] 檢測到使用者按下ctrl+c，正在關閉機器人...")
-#     else:
-#         sys.exit()
-
-
 def app():
     """
     開啟機器人
@@ -579,10 +512,7 @@ def main():
     程式入口
     :return:
     """
-    # global stop
-    # UserThread = threading.Thread(target=check, daemon=True)
     try:
-        # UserThread.start()
         CheckFile()
         app()
     except:
