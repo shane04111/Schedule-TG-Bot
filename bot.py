@@ -1,12 +1,8 @@
-import json
-import logging
 import re
-import sys
-import threading
+import telegram.error
 
 from telegram import *
 from telegram.ext import *
-
 from function.SQL_Model import *
 from function.day_select import day_select
 from function.deleteMessage import CreateDeleteButton, CreateRedoButton
@@ -16,12 +12,14 @@ from function.month_select import month_select
 from function.my_time import *
 from function.replay_markup import *
 from function.year_select import year_select
+from function.loggr import *
 
 load_dotenv()
 TOKEN = os.getenv("TOKEN")
 DEV_ID = os.getenv("DEV")
 bot = Bot(token=TOKEN)
-logger = logging.getLogger(__name__)
+logger = logInFile()
+logger.info('logger start')
 
 user_data = {}
 
@@ -37,14 +35,13 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
     :param context:
     :return:
     """
-    # translator = googletrans.Translator()
     text = None
+    user_id = update.message.from_user.id
+    chat_id = update.message.chat.id
     if update.message and update.message.text:
         text = update.message.text
     else:
-        print(f"[{time_datetime()}] 消息為空或無文本內容")
-    user_id = update.message.from_user.id
-    chat_id = update.message.chat.id
+        logger.warning(f"消息為空或無文本內容, user:{user_id}, chat:{chat_id}")
     DelData = GetUserMessage(user_id, chat_id)
     RedoData = GetUserDoneMessage(user_id, chat_id)
     id_match = re.search(r'(\d+)([iI][dD])', text)
@@ -172,7 +169,6 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     if query_get_key in user_data:
         get_need_data = user_data[query_get_key]
     else:
-        # await query.edit_message_text("按鈕已過時或無權限")
         await bot.sendMessage(query_chat_id, "按鈕已過時或無權限")
     # ===========match==============
     day_match = re.search(r'(\d+)day', query.data)
@@ -184,24 +180,24 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     await query.answer()
     if query_get_key in user_data and get_need_data.get('user_id') == query_user_id and get_need_data is not None:
         if query.data == "text_true":
-            await query.edit_message_text(text="請選擇提醒時間", reply_markup=time_chose_data_function())
+            await EditMessage(query, "請選擇提醒時間", time_chose_data_function())
         elif query.data == "text_false":
             user_data.pop(query_get_key)
-            await query.edit_message_text(text="結束提醒設定\n如需設定其他提醒請重新使用 /schedule")
+            await EditMessage(query, "結束提醒設定\n如需設定其他提醒請重新使用 /schedule")
         elif query.data == "time_back":
             text = get_need_data["text"]
             if len(text) <= 1900:
-                await query.edit_message_text(f"請確認提醒事項：{text}", reply_markup=true_false_text)
+                await EditMessage(query, f"請確認提醒事項：{text}", true_false_text)
             else:
-                await query.edit_message_text("是否提醒上述事項", reply_markup=true_false_text)
+                await EditMessage(query, "是否提醒上述事項", true_false_text)
         elif query.data == "today":
             SaveTimeDate(get_need_data, time_year(), time_month(), time_day(), True, False)
             if time_minute() > 57:
                 set_select_hour = time_hour() + 1
             else:
                 set_select_hour = time_hour()
-            await query.edit_message_text(f"{SendTime(get_need_data, 3)}\n請選擇要幾點提醒",
-                                          reply_markup=hour_select(set_select_hour))
+            await EditMessage(query, f"{SendTime(get_need_data, 3)}\n請選擇要幾點提醒",
+                              hour_select(set_select_hour))
         elif query.data == "set_day":
             SaveTimeDate(get_need_data, check_YMD().year, check_YMD().month, "", False, False)
             if check_YMD().is_valid:
@@ -212,43 +208,43 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
                 year_need = check_YMD().year
                 month_need = check_YMD().month
                 day_need = time_day() + 1
-            await query.edit_message_text(f"{SendTime(get_need_data, 2)}\n請選擇要幾號提醒",
-                                          reply_markup=day_select(year_need, month_need, day_need))
+            await EditMessage(query, f"{SendTime(get_need_data, 2)}\n請選擇要幾號提醒",
+                              day_select(year_need, month_need, day_need))
         elif query.data == "only_year":
             SaveTimeDate(get_need_data, check_YMD().year, "", "", False, True)
             if check_YMD().is_valid:
                 month_need = check_YMD().month
             else:
                 month_need = time_month() + 1
-            await query.edit_message_text(f"{SendTime(get_need_data, 1)}\n請選擇要幾月提醒",
-                                          reply_markup=month_select(month_need))
+            await EditMessage(query, f"{SendTime(get_need_data, 1)}\n請選擇要幾月提醒",
+                              month_select(month_need))
         elif query.data == "all_set":
             SaveTimeDate(get_need_data, check_YMD().year, check_YMD().month, "", False, True)
-            await query.edit_message_text("請選擇要幾年提醒", reply_markup=year_select(time_year() + 1))
+            await EditMessage(query, "請選擇要幾年提醒", year_select(time_year() + 1))
         elif query.data == "year_back":
-            await query.edit_message_text("請選擇提醒時間", reply_markup=time_chose_data_function())
+            await EditMessage(query, "請選擇提醒時間", time_chose_data_function())
         elif query.data == "month_back":
             year_need = get_need_data["year"]
             if year_need == time_year():
-                await query.edit_message_text("請選擇提醒時間", reply_markup=time_chose_data_function())
+                await EditMessage(query, "請選擇提醒時間", time_chose_data_function())
             else:
-                await query.edit_message_text(f"{SendTime(get_need_data, 1)}\n請選擇要幾年提醒",
-                                              reply_markup=year_select(time_year() + 1))
+                await EditMessage(query, f"{SendTime(get_need_data, 1)}\n請選擇要幾年提醒",
+                                  year_select(time_year() + 1))
         elif year_match:
             get_year = int(year_match.group(1))
             get_need_data["year"] = get_year
-            await query.edit_message_text(f"當前選擇時間 {get_year}\n請選擇要幾月提醒", reply_markup=month_select(1))
+            await EditMessage(query, f"當前選擇時間 {get_year}\n請選擇要幾月提醒", month_select(1))
         elif month_match:
             get_month = int(month_match.group(1))
             get_need_data["month"] = get_month
             year_need = get_need_data["year"]
-            await query.edit_message_text(f"當前選擇時間 {year_need}/{get_month}\n請選擇要幾號提醒",
-                                          reply_markup=day_select(year_need, get_month, 1))
+            await EditMessage(query, f"當前選擇時間 {year_need}/{get_month}\n請選擇要幾號提醒",
+                              day_select(year_need, get_month, 1))
         elif day_match:
             get_day = int(day_match.group(1))
             get_need_data["day"] = get_day
-            await query.edit_message_text(f"{SendTime(get_need_data, 3)}",
-                                          reply_markup=hour_select(0))
+            await EditMessage(query, f"{SendTime(get_need_data, 3)}",
+                              hour_select(0))
         elif query.data == "day_back":
             if get_need_data["isOY"]:
                 if time_year() == get_need_data["year"]:
@@ -258,19 +254,19 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
                         month_need = time_month() + 1
                 else:
                     month_need = 1
-                await query.edit_message_text(f"{SendTime(get_need_data, 2)}\n請選擇要幾月提醒",
-                                              reply_markup=month_select(month_need))
+                await EditMessage(query, f"{SendTime(get_need_data, 2)}\n請選擇要幾月提醒",
+                                  month_select(month_need))
             else:
-                await query.edit_message_text("請選擇提醒時間", reply_markup=time_chose_data_function())
+                await EditMessage(query, "請選擇提醒時間", time_chose_data_function())
         elif hour_match:
             get_hour = int(hour_match.group(1))
             get_need_data["hour"] = get_hour
-            await query.edit_message_text(
-                f"{SendTime(get_need_data, 4)}\n請選擇要幾分提醒",
-                reply_markup=hour_check_button(get_need_data))
+            await EditMessage(query,
+                              f"{SendTime(get_need_data, 4)}\n請選擇要幾分提醒",
+                              hour_check_button(get_need_data))
         elif query.data == "HR_back":
             if get_need_data["is_today"]:
-                await query.edit_message_text(text="請選擇提醒時間", reply_markup=time_chose_data_function())
+                await EditMessage(query, "請選擇提醒時間", time_chose_data_function())
             else:
                 if time_year() == get_need_data["year"] and time_month() == get_need_data["month"]:
                     if check_YMD().is_valid:
@@ -279,55 +275,58 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
                     else:
                         month_need = check_YMD().month
                         day_need = time_day() + 1
-                    await query.edit_message_text(f"{SendTime(get_need_data, 3)}\n請選擇要幾號提醒",
-                                                  reply_markup=day_select(time_year(), month_need, day_need))
+                    await EditMessage(query, f"{SendTime(get_need_data, 3)}\n請選擇要幾號提醒",
+                                      day_select(time_year(), month_need, day_need))
                 else:
-                    await query.edit_message_text(f"{SendTime(get_need_data, 3)}\n請選擇要幾號提醒",
-                                                  reply_markup=day_select(get_need_data["year"], get_need_data["month"],
-                                                                          1))
+                    await EditMessage(query, f"{SendTime(get_need_data, 3)}\n請選擇要幾號提醒",
+                                      day_select(get_need_data["year"], get_need_data["month"],
+                                                 1))
         elif min_match:
             get_min = int(min_match.group(1))
             get_need_data["minute"] = get_min
-            await query.edit_message_text(message_check_text(get_need_data), reply_markup=config_check)
+            await EditMessage(query, message_check_text(get_need_data), config_check)
         elif query.data == "MIN_back":
-            await query.edit_message_text(f"{SendTime(get_need_data, 4)}\n請選擇要幾點提醒",
-                                          reply_markup=hour_select(hour_check_need(get_need_data)))
+            await EditMessage(query, f"{SendTime(get_need_data, 4)}\n請選擇要幾點提醒",
+                              hour_select(hour_check_need(get_need_data)))
         elif query.data == "config_true":
             FinalSaveData(get_need_data)
             user_data.pop(query_get_key)
-            await query.edit_message_text("已成功安排提醒\n如需設定其他提醒請再次輸入 /schedule")
+            await EditMessage(query, "已成功安排提醒\n如需設定其他提醒請再次輸入 /schedule")
         elif query.data == "config_false":
-            await query.edit_message_text("請選擇提醒時間", reply_markup=time_chose_data_function())
+            await EditMessage(query, "請選擇提醒時間", time_chose_data_function())
         elif query.data == "config_back":
-            await query.edit_message_text(f"{SendTime(get_need_data, 4)}\n請選擇要幾分提醒",
-                                          reply_markup=hour_check_button(get_need_data))
+            await EditMessage(query, f"{SendTime(get_need_data, 4)}\n請選擇要幾分提醒",
+                              hour_check_button(get_need_data))
         elif query.data == "cancel":
             user_data.pop(query_get_key)
-            await query.edit_message_text("已取消安排提醒\n如需設定其他提醒請再次輸入 /schedule")
+            await EditMessage(query, "已取消安排提醒\n如需設定其他提醒請再次輸入 /schedule")
         elif delete_match:
             get_delete = str(delete_match.group(1))
             ChangeSendTrue(get_delete)
             DelData = GetUserMessage(query_user_id, query_chat_id)
             if DelData:
-                await query.edit_message_text("已刪除所選提醒，還有以下提醒：",
-                                              reply_markup=CreateDeleteButton(query_user_id, query_chat_id))
+                await EditMessage(query, "已刪除所選提醒，還有以下提醒：",
+                                  CreateDeleteButton(query_user_id, query_chat_id))
             else:
-                await query.edit_message_text("無提醒訊息")
+                await EditMessage(query, "無提醒訊息")
         elif query.data == "del":
-            await query.edit_message_text("如需重新刪除提醒請再次輸入指令")
+            await EditMessage(query, "如需重新刪除提醒請再次輸入指令")
         else:
-            print("have in to the data: ", query.data)
+            logger.warning(f"錯誤的按鈕回傳: {query.data}")
             return
     else:
-        print("not in to the data: ", query.data)
         return
 
 
-async def EditMessage(query, editMessage, mark):
+async def EditMessage(query, editMessage, mark=None):
     try:
         await query.edit_message_text(editMessage, reply_markup=mark)
+    except telegram.error.TelegramError:
+        logger.warning('bot edit message error ', exc_info=True)
+        return
     except:
-        print(f"[{time_datetime()}] button error")
+        logger.error('else error ', exc_info=True)
+        return
 
 
 def FinalSaveData(data):
@@ -463,72 +462,73 @@ def hour_check_need(data):
 async def error_handler(update: object, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Log the error and send a telegram message to notify the developer."""
     # Log the error before we do anything else, so we can see it even if something breaks.
-    logger.error(f"[{time_datetime()}]Telegram error:", exc_info=context.error)
+    logger.error("Telegram error:", exc_info=context.error)
     await bot.sendMessage(DEV_ID, f"TG機器人發生了神奇的錯誤：{context.error}")
 
 
-stop = True
+# stop = True
 
 
-def check():
-    """
-    後臺查詢功能
-    :return:
-    """
-    global stop
-    try:
-        while stop:
-            # 使用者輸入查詢資料
-            need_get = input("請輸入需要讀取的資料\n")
-            id_match = re.search(r'(\d+)id', need_get)
-            lot_id_match = re.search(r'(\d+)lid', need_get)
-            if need_get == "user":
-                print("user_data", json.dumps(user_data, indent=2, ensure_ascii=False))
-            elif need_get == "data":
-                print(f"[{time_datetime()}] 當前尚未通知的有: ")
-                for item in GetNotUseData():
-                    formatted_item = f"ID:{item[0]:<4} {item[2]} {item[1]}"
-                    print(formatted_item)
-            elif need_get == "file":
-                CheckFile()
-            elif need_get == "clear":
-                print("\033c")
-            elif id_match:
-                get_Need_Id = str(id_match.group(1))
-                print(f"[{time_datetime()}] {get_Need_Id}資料: \n")
-                for item in GetIdData(get_Need_Id):
-                    if item:
-                        formatted_item = f"ID:{item[0]:<4} |提醒時間: {item[2]} |提醒事項: \n{item[1]}"
-                        print(formatted_item)
-                    else:
-                        print('na')
-            elif need_get == "all":
-                print(f"[{time_datetime()}] 所有資料: \n")
-                for item in GetAllData():
-                    item1 = str(item[1]).replace("\n", " ")
-                    formatted_item = f"ID:{item[0]:<4} |提醒時間: {item[2]} |提醒事項: {item1[:50]}"
-                    print(formatted_item)
-            elif lot_id_match:
-                Lot_id = int(lot_id_match.group(1))
-                if Lot_id == 1:
-                    FirstId = 1
-                    LestId = 50
-                else:
-                    FirstId = ((Lot_id - 1) * 50) + 1
-                    LestId = Lot_id * 50
-                for item in GetLotId(FirstId, LestId):
-                    item1 = str(item[1]).replace("\n", " ")
-                    formatted_item = f"ID:{item[0]:<4} |提醒時間: {item[2]} |提醒事項: {item1[:50]}"
-                    print(formatted_item)
-            else:
-                print("無法讀取\n可輸入：user以及data")
-    except KeyboardInterrupt:
-        stop = False
-    except EOFError:
-        stop = False
-        print(f"[{time_datetime()}] 檢測到使用者按下ctrl+c，正在關閉機器人...")
-    else:
-        sys.exit()
+# not use
+# def check():
+#     """
+#     後臺查詢功能
+#     :return:
+#     """
+#     global stop
+#     try:
+#         while stop:
+#             # 使用者輸入查詢資料
+#             need_get = input("請輸入需要讀取的資料\n")
+#             id_match = re.search(r'(\d+)id', need_get)
+#             lot_id_match = re.search(r'(\d+)lid', need_get)
+#             if need_get == "user":
+#                 print("user_data", json.dumps(user_data, indent=2, ensure_ascii=False))
+#             elif need_get == "data":
+#                 print(f"[{time_datetime()}] 當前尚未通知的有: ")
+#                 for item in GetNotUseData():
+#                     formatted_item = f"ID:{item[0]:<4} {item[2]} {item[1]}"
+#                     print(formatted_item)
+#             elif need_get == "file":
+#                 CheckFile()
+#             elif need_get == "clear":
+#                 print("\033c")
+#             elif id_match:
+#                 get_Need_Id = str(id_match.group(1))
+#                 print(f"[{time_datetime()}] {get_Need_Id}資料: \n")
+#                 for item in GetIdData(get_Need_Id):
+#                     if item:
+#                         formatted_item = f"ID:{item[0]:<4} |提醒時間: {item[2]} |提醒事項: \n{item[1]}"
+#                         print(formatted_item)
+#                     else:
+#                         print('na')
+#             elif need_get == "all":
+#                 print(f"[{time_datetime()}] 所有資料: \n")
+#                 for item in GetAllData():
+#                     item1 = str(item[1]).replace("\n", " ")
+#                     formatted_item = f"ID:{item[0]:<4} |提醒時間: {item[2]} |提醒事項: {item1[:50]}"
+#                     print(formatted_item)
+#             elif lot_id_match:
+#                 Lot_id = int(lot_id_match.group(1))
+#                 if Lot_id == 1:
+#                     FirstId = 1
+#                     LestId = 50
+#                 else:
+#                     FirstId = ((Lot_id - 1) * 50) + 1
+#                     LestId = Lot_id * 50
+#                 for item in GetLotId(FirstId, LestId):
+#                     item1 = str(item[1]).replace("\n", " ")
+#                     formatted_item = f"ID:{item[0]:<4} |提醒時間: {item[2]} |提醒事項: {item1[:50]}"
+#                     print(formatted_item)
+#             else:
+#                 print("無法讀取\n可輸入：user以及data")
+#     except KeyboardInterrupt:
+#         stop = False
+#     except EOFError:
+#         stop = False
+#         print(f"[{time_datetime()}] 檢測到使用者按下ctrl+c，正在關閉機器人...")
+#     else:
+#         sys.exit()
 
 
 def app():
@@ -544,7 +544,34 @@ def app():
     application.add_handler(MessageHandler(filters.TEXT, handle_message))
 
     print("機器人已上線")
-    application.run_polling(allowed_updates=Update.ALL_TYPES)
+    logger.info('機器人已上線')
+    application.run_polling()
+
+
+def CheckFile():
+    conn = sqlite3.connect(DB)
+    cursor = conn.cursor()
+    cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='schedule';")
+    result = cursor.fetchone()
+    # 检查结果
+    if not result:
+        logger.warning("数据库中不存在名为 'schedule' 的表，正在創建 'schedule' 表")
+        cursor.execute('''
+        CREATE TABLE "schedule"
+        (
+        ID       INTEGER
+            primary key,
+        Message  TEXT    default 'No Message' not null,
+        UserID   INTEGER default -1           not null,
+        ChatID   INTEGER default -1           not null,
+        DateTime TEXT    default -1           not null,
+        UserTime TEXT    default 'na',
+        Send     TEXT    default 'False'
+        );
+                        ''')
+        logger.warning("'schedule' 表創建完成")
+    conn.commit()
+    conn.close()
 
 
 def main():
@@ -552,19 +579,17 @@ def main():
     程式入口
     :return:
     """
-    global stop
-    UserThread = threading.Thread(target=check, daemon=True)
+    # global stop
+    # UserThread = threading.Thread(target=check, daemon=True)
     try:
-        UserThread.start()
-        # CheckFile()
+        # UserThread.start()
+        CheckFile()
         app()
-    except error.BadRequest:
-        print(f"[{time_datetime()}] Emm神奇的修改重複內容，可能有人按了兩下按鈕")
-    except KeyboardInterrupt:
-        stop = False
-        print(f"[{time_datetime()}] 檢測到使用者按下ctrl+c，正在關閉機器人...")
-    except BaseException as e:
-        print(f"[{time_datetime()}] 發生了一個錯誤: \n", e)
+    except:
+        logger.error('有東西抱錯了: ', exc_info=True)
+        return
+    finally:
+        logger.info('logger end')
 
 
 if __name__ == "__main__":

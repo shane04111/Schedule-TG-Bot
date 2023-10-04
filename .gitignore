@@ -11,3 +11,4 @@ run.bat
 send.bat
 .env
 data/schedule.csv
+/log/

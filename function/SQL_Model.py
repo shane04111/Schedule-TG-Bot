@@ -1,38 +1,11 @@
-from function.my_time import *
 import os
 import sqlite3
 
+from function.my_time import *
 from dotenv import load_dotenv
 
 load_dotenv()
 DB = os.getenv("DB")
-
-
-def CheckFile():
-    conn = sqlite3.connect(DB)
-    cursor = conn.cursor()
-    cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='schedule';")
-    result = cursor.fetchone()
-    # 检查结果
-    if result:
-        print("数据库中存在名为 'schedule' 的表。")
-    else:
-        print("数据库中不存在名为 'schedule' 的表，正在創建 'schedule' 表")
-        cursor.execute('''
-        CREATE TABLE "schedule"
-        (
-        ID       INTEGER
-            primary key,
-        Message  TEXT    default 'No Message' not null,
-        UserID   INTEGER default -1           not null,
-        ChatID   INTEGER default -1           not null,
-        DateTime TEXT    default -1           not null,
-        UserTime TEXT    default 'na',
-        Send     TEXT    default 'False'
-        );
-                        ''')
-    conn.commit()
-    conn.close()
 
 
 def SaveData(Message: str, UserID: int, ChatID: int, Year: int, Month: int, Day: int, Hour: int, Minute: int):
