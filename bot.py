@@ -1,6 +1,9 @@
 import re
 import telegram.error
 
+from function.loggr import logger
+logger.info('logger start')
+
 from telegram import *
 from telegram.ext import *
 from function.SQL_Model import *
@@ -10,15 +13,11 @@ from function.minute_select import minute_select
 from function.Select import year_select, month_select, day_select
 from function.my_time import *
 from function.replay_markup import *
-from function.loggr import *
 
 load_dotenv()
 TOKEN = os.getenv("TOKEN")
 DEV_ID = os.getenv("DEV")
 bot = Bot(token=TOKEN)
-logger = logInFile()
-logger.info('logger start')
-
 user_data = {}
 
 
@@ -515,10 +514,18 @@ def main():
     try:
         CheckFile()
         app()
+    except SyntaxError:
+        logger.error('代碼寫錯了喔: ', exc_info=True)
+    except NameError:
+        logger.error('有個參數設定錯誤: ', exc_info=True)
+    except telegram.error:
+        logger.error('telegram錯誤: ', exc_info=True)
+    except sqlite3.Error:
+        logger.error('sqlite3錯誤: ', exc_info=True)
     except:
-        logger.error('有東西抱錯了: ', exc_info=True)
-        return
+        logger.error('其他錯誤: ', exc_info=True)
     finally:
+        DBHandler.Close()
         logger.info('logger end')
 
 

@@ -5,7 +5,6 @@ data/
 **/__pycache__/
 data/schedule.json
 data/schedule_data.bd
-schedule.json
 schedule_data.db
 run.bat
 send.bat

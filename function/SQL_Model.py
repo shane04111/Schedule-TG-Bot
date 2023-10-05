@@ -1,11 +1,12 @@
 import os
-import sqlite3
 
+from function.SqlClass import *
 from function.my_time import *
 from dotenv import load_dotenv
 
 load_dotenv()
 DB = os.getenv("DB")
+DBHandler = Sql(DB)
 
 
 def SaveData(Message: str, UserID: int, ChatID: int, Year: int, Month: int, Day: int, Hour: int, Minute: int):
@@ -21,13 +22,9 @@ def SaveData(Message: str, UserID: int, ChatID: int, Year: int, Month: int, Day:
     :param Minute:      使用者輸入
     :return:
     """
-    conn = sqlite3.connect(DB)
-    cursor = conn.cursor()
-    cursor.execute(
+    DBHandler.InsertData(
         '''INSERT INTO schedule (Message, UserID, ChatID, DateTime, UserTime) VALUES (?, ?, ?, ?, ?)''',
         (Message, UserID, ChatID, f"{Year}-{Month}-{Day} {Hour}:{Minute}:00", time_datetime()))
-    conn.commit()
-    cursor.close()
 
 
 def GetData():
@@ -35,32 +32,12 @@ def GetData():
     抓取時間比目前還要早並且尚未通知使用者過的訊息
     :return:
     """
-    conn = sqlite3.connect(DB)
-    cursor = conn.cursor()
-    cursor.execute('''
+    results = DBHandler.QueryData('''
     SELECT Message, ChatID, ID 
     FROM schedule 
     WHERE datetime(DateTime) <= datetime('now', 'localtime') 
     AND Send == 'False';
     ''')
-
-    results = cursor.fetchall()
-    conn.commit()
-    conn.close()
-    return results
-
-
-def GetNotUseData():
-    """
-    抓取尚未提醒過的所有訊息
-    :return:
-    """
-    conn = sqlite3.connect(DB)
-    cursor = conn.cursor()
-    cursor.execute("SELECT ID, Message, DateTime FROM schedule WHERE Send == 'False';")
-    results = cursor.fetchall()
-    conn.commit()
-    conn.close()
     return results
 
 
