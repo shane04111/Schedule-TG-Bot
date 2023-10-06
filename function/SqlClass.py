@@ -5,10 +5,23 @@ from function.loggr import logger
 class Sql:
     def __init__(self, DB):
         self.DB = DB
-        self.conn = sqlite3.connect(self.DB)
-        self.cursor = self.conn.cursor()
-        if self.conn:
-            logger.info('資料庫已連接')
+        self.conn = None
+        self.cursor = None
+
+    def connect(self):
+        try:
+            self.conn = sqlite3.connect(self.DB)
+            self.cursor = self.conn.cursor()
+            logger.info('已連接至資料庫')
+        except sqlite3.Error:
+            logger.error('try to connect database error ', exc_info=True)
+
+    def sendConnect(self):
+        try:
+            self.conn = sqlite3.connect(self.DB)
+            self.cursor = self.conn.cursor()
+        except sqlite3.Error:
+            logger.error('try to connect database error ', exc_info=True)
 
     def Close(self):
         try:

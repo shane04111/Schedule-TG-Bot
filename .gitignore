@@ -11,3 +11,4 @@ send.bat
 .env
 data/schedule.csv
 /log/
+test.py

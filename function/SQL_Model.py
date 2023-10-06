@@ -5,8 +5,8 @@ from function.my_time import *
 from dotenv import load_dotenv
 
 load_dotenv()
-DB = os.getenv("DB")
-DBHandler = Sql(DB)
+_DB = os.getenv("DB")
+DBHandler = Sql(_DB)
 
 
 def SaveData(Message: str, UserID: int, ChatID: int, Year: int, Month: int, Day: int, Hour: int, Minute: int):
@@ -47,7 +47,7 @@ def ChangeSendTrue(delID: str):
     :param delID:
     :return:
     """
-    conn = sqlite3.connect(DB)
+    conn = sqlite3.connect(_DB)
     cursor = conn.cursor()
     sql = "UPDATE schedule SET Send = 'True' WHERE ID = ?;"
     data = [delID]
@@ -62,7 +62,7 @@ def ChangeSendFalse(delID: str):
     :param delID:
     :return:
     """
-    conn = sqlite3.connect(DB)
+    conn = sqlite3.connect(_DB)
     cursor = conn.cursor()
     sql = "UPDATE schedule SET Send = 'True' WHERE ID = ?;"
     data = [delID]
@@ -78,7 +78,7 @@ def GetUserMessage(userId, chatID):
     :param chatID: 使用者所在頻道ID
     :return:
     """
-    conn = sqlite3.connect(DB)
+    conn = sqlite3.connect(_DB)
     cursor = conn.cursor()
     sql = "SELECT ID, Message, DateTime FROM schedule WHERE Send == 'False' AND UserID = ? AND ChatID = ?;"
     data = [userId, chatID]
@@ -96,7 +96,7 @@ def GetUserDoneMessage(userId, chatID):
     :param chatID: 使用者所在頻道ID
     :return:
     """
-    conn = sqlite3.connect(DB)
+    conn = sqlite3.connect(_DB)
     cursor = conn.cursor()
     sql = "SELECT ID, Message, DateTime FROM schedule WHERE Send == 'True' AND UserID = ? AND ChatID = ?;"
     data = [userId, chatID]
@@ -112,7 +112,7 @@ def GetAllData():
     抓取所有訊息
     :return:
     """
-    conn = sqlite3.connect(DB)
+    conn = sqlite3.connect(_DB)
     cursor = conn.cursor()
     cursor.execute("SELECT ID, Message, DateTime FROM schedule;")
     results = cursor.fetchall()
@@ -126,7 +126,7 @@ def GetIdData(GetId):
     抓取特定id資料
     :return:
     """
-    conn = sqlite3.connect(DB)
+    conn = sqlite3.connect(_DB)
     cursor = conn.cursor()
     cursor.execute("SELECT ID, Message, DateTime FROM schedule WHERE ID == ?;", [GetId, ])
     results = cursor.fetchall()
@@ -140,7 +140,7 @@ def GetLotId(IdFirst: int, IdLest: int):
         抓取特定區間id資料
         :return:
     """
-    conn = sqlite3.connect(DB)
+    conn = sqlite3.connect(_DB)
     cursor = conn.cursor()
     cursor.execute("SELECT ID, Message, DateTime FROM schedule WHERE ID BETWEEN ? AND ?;", [IdFirst, IdLest, ])
     results = cursor.fetchall()

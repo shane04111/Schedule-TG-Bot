@@ -1,19 +1,18 @@
 import re
+
 import telegram.error
+from telegram import Update, Bot
+from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, CallbackQueryHandler, filters, ContextTypes
 
-from function.loggr import logger
-logger.info('logger start')
-
-from telegram import *
-from telegram.ext import *
 from function.SQL_Model import *
+from function.Select import year_select, month_select, day_select
 from function.deleteMessage import CreateDeleteButton, CreateRedoButton
 from function.hour_select import hour_select, convert_to_chinese_time
 from function.minute_select import minute_select
-from function.Select import year_select, month_select, day_select
-from function.my_time import *
-from function.replay_markup import *
+from function.replay_markup import true_false_text, config_check, time_chose_data_function, check_YMD
 
+logger.info('logger start')
+DBHandler.connect()
 load_dotenv()
 TOKEN = os.getenv("TOKEN")
 DEV_ID = os.getenv("DEV")
@@ -316,14 +315,28 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 
 
 async def EditMessage(query, editMessage, mark=None):
+    """
+    抓取編輯訊息錯誤, 以避免使用者點及兩次按鈕
+    :param query:
+    :param editMessage: 編輯訊息內容
+    :param mark: 編輯訊息按鈕
+    :return:
+    """
     try:
         await query.edit_message_text(editMessage, reply_markup=mark)
+    except telegram.error.BadRequest:
+        logger.warning('機器人嘗試編輯訊息錯誤')
+        return
+    except telegram.error.NetworkError:
+        logger.error('網路錯誤', exc_info=True)
+        return
     except telegram.error.TelegramError:
-        logger.warning('bot edit message error ', exc_info=True)
+        logger.error('Telegame API error  ', exc_info=True)
         return
-    except:
-        logger.error('else error ', exc_info=True)
-        return
+    except SyntaxError:
+        logger.error('代碼寫錯了喔: ', exc_info=True)
+    except NameError:
+        logger.error('有個參數設定錯誤: ', exc_info=True)
 
 
 def FinalSaveData(data):
@@ -428,13 +441,13 @@ def hour_check_button(data):
     """
     if data["is_today"]:
         if data["hour"] == time_hour():
-            set_minute_button = InlineKeyboardMarkup(minute_select(True))
+            set_minute_button = minute_select(True)
             return set_minute_button
         else:
-            set_minute_button = InlineKeyboardMarkup(minute_select(False))
+            set_minute_button = minute_select(False)
             return set_minute_button
     else:
-        set_minute_button = InlineKeyboardMarkup(minute_select(False))
+        set_minute_button = minute_select(False)
         return set_minute_button
 
 
@@ -459,7 +472,7 @@ def hour_check_need(data):
 async def error_handler(update: object, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Log the error and send a telegram message to notify the developer."""
     # Log the error before we do anything else, so we can see it even if something breaks.
-    logger.error("Telegram error:", exc_info=context.error)
+    logger.error("Telegram error ", exc_info=context.error)
     await bot.sendMessage(DEV_ID, f"TG機器人發生了神奇的錯誤：{context.error}")
 
 
@@ -481,15 +494,12 @@ def app():
 
 
 def CheckFile():
-    conn = sqlite3.connect(DB)
-    cursor = conn.cursor()
-    cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='schedule';")
-    result = cursor.fetchone()
+    result = DBHandler.QueryData("SELECT name FROM sqlite_master WHERE type='table' AND name='schedule';")
     # 检查结果
     if not result:
         logger.warning("数据库中不存在名为 'schedule' 的表，正在創建 'schedule' 表")
-        cursor.execute('''
-        CREATE TABLE "schedule"
+        DBHandler.DoSql('''
+        CREATE TABLE IF NOT EXISTS "schedule"
         (
         ID       INTEGER
             primary key,
@@ -502,8 +512,6 @@ def CheckFile():
         );
                         ''')
         logger.warning("'schedule' 表創建完成")
-    conn.commit()
-    conn.close()
 
 
 def main():
@@ -511,15 +519,21 @@ def main():
     程式入口
     :return:
     """
+    CheckFile()
+    app()
+
+
+if __name__ == "__main__":
     try:
-        CheckFile()
-        app()
+        main()
     except SyntaxError:
         logger.error('代碼寫錯了喔: ', exc_info=True)
     except NameError:
         logger.error('有個參數設定錯誤: ', exc_info=True)
-    except telegram.error:
-        logger.error('telegram錯誤: ', exc_info=True)
+    except telegram.error.NetworkError:
+        logger.error('telegram 網路錯誤: ', exc_info=True)
+    except telegram.error.TelegramError:
+        logger.error('telegram API 錯誤: ', exc_info=True)
     except sqlite3.Error:
         logger.error('sqlite3錯誤: ', exc_info=True)
     except:
@@ -527,7 +541,3 @@ def main():
     finally:
         DBHandler.Close()
         logger.info('logger end')
-
-
-if __name__ == "__main__":
-    main()
