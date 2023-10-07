@@ -1,160 +1,33 @@
+import os
 import re
 
-import telegram.error
-from telegram import Update, Bot
-from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, CallbackQueryHandler, filters, ContextTypes
+import telegram
+from dotenv import load_dotenv
+from telegram import Update, CallbackQuery, InlineKeyboardMarkup, Bot
+from telegram.ext import ContextTypes
 
-from function.SQL_Model import *
-from function.Select import year_select, month_select, day_select
-from function.deleteMessage import CreateDeleteButton, CreateRedoButton
+from function.SQL_Model import ChangeSendTrue, GetUserMessage, GetIdData, SaveData
+from function.Select import day_select, month_select, year_select
+from function.deleteMessage import CreateDeleteButton
 from function.hour_select import hour_select, convert_to_chinese_time
+from function.loggr import logger
 from function.minute_select import minute_select
-from function.replay_markup import true_false_text, config_check, time_chose_data_function, check_YMD
+from function.my_time import time_year, time_month, time_day, time_minute, time_hour
+from function.replay_markup import time_chose_data_function, true_false_text, check_YMD, config_check
+from util.MessageHandle import user_data
 
-logger.info('logger start')
-DBHandler.connect()
 load_dotenv()
-TOKEN = os.getenv("TOKEN")
-DEV_ID = os.getenv("DEV")
+TOKEN = os.getenv('TOKEN')
 bot = Bot(token=TOKEN)
-user_data = {}
 
 
-async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    await update.message.reply_text("歡迎使用機器人！\n!s 創建一個新的提醒")
-
-
-async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+async def ScheduleButton(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """
-    檢測使用者輸入訊息，並詢問是否需要提醒
-    :param update:
-    :param context:
-    :return:
-    """
-    text = None
-    user_id = update.message.from_user.id
-    chat_id = update.message.chat.id
-    if update.message and update.message.text:
-        text = update.message.text
-    else:
-        logger.warning(f"消息為空或無文本內容, user:{user_id}, chat:{chat_id}")
-    DelData = GetUserMessage(user_id, chat_id)
-    RedoData = GetUserDoneMessage(user_id, chat_id)
-    id_match = re.search(r'(\d+)([iI][dD])', text)
-    checkCommands = r"(![sS]|/[sS])(chedule)?(@EZMinder_bot)?"
-    deleteCommands = r"(![dD]|/[dD])(elete)?(@EZMinder_bot)?"
-    redoCommands = r"(![rR]|/[rR])(edo)?(@EZMinder_bot)?"
-    if re.match(checkCommands, text):
-        await SetSchedule(update, checkCommands, text, user_id, chat_id)
-    elif text == "!id":
-        await update.message.reply_text(f"{update.message.message_id}")
-    elif re.match(deleteCommands, text):
-        await DoCommands(update, DelData, "請選取要刪除的提醒訊息", CreateDeleteButton(user_id, chat_id),
-                         user_id, chat_id)
-    elif re.match(redoCommands, text):
-        await DoCommands(update, RedoData, "請選擇要重新提醒的訊息", CreateRedoButton(user_id, chat_id),
-                         user_id, chat_id)
-    elif id_match:
-        await SearchId(update, id_match, chat_id)
-    elif update.message.chat.type == "private":
-        await StartSet(update, text, user_id, chat_id)
-
-
-async def DoCommands(update, Data, ReplayText, ButtonMark, user_id, chat_id):
-    """
-    回復傳入訊息並根據傳入資料建立訊息之按鈕
-    :param update:
-    :param Data: 數據庫回膗資料
-    :param ReplayText: 回復訊息
-    :param ButtonMark: 建立按鈕
-    :param user_id: 使用者id
-    :param chat_id: 頻道id
-    :return:
-    """
-    if Data:
-        msg = await update.message.reply_text(ReplayText, reply_markup=ButtonMark)
-        msgID = msg.message_id
-        user_data[f"{user_id}|{chat_id}|{msgID}"] = {"user_id": user_id}
-    else:
-        await update.message.reply_text("尚未設定提醒")
-
-
-async def SetSchedule(update, checkCommands, text, user_id, chat_id):
-    """
-    設定提醒事項
-    :param update:
-    :param checkCommands: 提醒前墜或指令
-    :param text: 使用者輸入訊息
-    :param user_id: 使用者id
-    :param chat_id: 頻道id
-    :return:
-    """
-    clear_text = re.sub(checkCommands, "", text).strip()
-    if clear_text == "":
-        await update.message.reply_text("請重新使用命令並在後面加上提醒事項")
-    else:
-        await StartSet(update, clear_text, user_id, chat_id)
-
-
-async def StartSet(update, text, user, chat):
-    """
-    判斷是否過長並給出相對的詢問
-    :param update:
-    :param text: 使用者輸入之訊息
-    :param user: 使用者id
-    :param chat: 聊天頻道
-    :return:
-    """
-    if len(text) <= 1900:
-        msg = await update.message.reply_text(f"請確認提醒事項：{text}", reply_markup=true_false_text)
-    else:
-        await update.message.reply_text(text)
-        msg = await update.message.reply_text("是否提醒上述事項", reply_markup=true_false_text)
-    messageID = msg.message_id
-    user_data[f"{user}|{chat}|{messageID}"] = {
-        "text": text,
-        "user_id": user,
-        "chat_id": chat,
-        "message_id": messageID
-    }
-
-
-async def SearchId(update, id_match, chat_id):
-    """
-    尋找特定id訊息，並將提醒內容傳給使用者
-    :param update:
-    :param id_match: 使用者輸入指令
-    :param chat_id: 頻道id
-    :return:
-    """
-    get_Need_Id = str(id_match.group(1))
-    formatted_item = None
-    long_item = None
-    for item in GetIdData(get_Need_Id):
-        if item:
-            item1 = str(item[1])
-            if len(item1) <= 1800:
-                formatted_item = f"提醒時間: {item[2]} |提醒事項: \n{item[1]}"
-            else:
-                formatted_item = f"提醒時間: {item[2]} |提醒事項: \n"
-                long_item = f"{item[1]}"
-    if formatted_item is None:
-        await update.message.reply_text(f"ID {get_Need_Id} 不存在")
-    else:
-        if long_item is None:
-            await update.message.reply_text(f"ID {get_Need_Id} 的資料是\n{formatted_item}")
-        else:
-            await update.message.reply_text(f"ID {get_Need_Id} 的資料是\n{formatted_item}")
-            await bot.send_message(chat_id, long_item)
-
-
-async def button(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    """
-    按鈕檢測及回應
-    :param update:
-    :param context:
-    :return:
-    """
+        按鈕檢測及回應
+        :param update:
+        :param context:
+        :return:
+        """
     query = update.callback_query
     query_user_id = query.from_user.id
     query_chat_id = query.message.chat.id
@@ -173,6 +46,7 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     month_match = re.search(r'(\d+)month', query.data)
     year_match = re.search(r'(\d+)year', query.data)
     delete_match = re.search(r'(\d+)del', query.data)
+    redo_match = re.search(r'(\d+)redo', query.data)
     await query.answer()
     if query_get_key in user_data and get_need_data.get('user_id') == query_user_id and get_need_data is not None:
         if query.data == "text_true":
@@ -239,8 +113,7 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         elif day_match:
             get_day = int(day_match.group(1))
             get_need_data["day"] = get_day
-            await EditMessage(query, f"{SendTime(get_need_data, 3)}",
-                              hour_select(0))
+            await EditMessage(query, f"{SendTime(get_need_data, 3)}", hour_select(0))
         elif query.data == "day_back":
             if get_need_data["isOY"]:
                 if time_year() == get_need_data["year"]:
@@ -307,6 +180,16 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
                 await EditMessage(query, "無提醒訊息")
         elif query.data == "del":
             await EditMessage(query, "如需重新刪除提醒請再次輸入指令")
+        elif redo_match:
+            get_redo = str(redo_match.group(1))
+            data = GetIdData(get_redo)
+            text = data[0][1]
+            get_need_data["text"] = text
+            if len(text) >= 1900:
+                await bot.sendMessage(query_chat_id, text)
+                await EditMessage(query, "是否提醒上述事項", true_false_text)
+            else:
+                await EditMessage(query, f"請確認提醒事項：{text}", true_false_text)
         else:
             logger.warning(f"錯誤的按鈕回傳: {query.data}")
             return
@@ -314,7 +197,7 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         return
 
 
-async def EditMessage(query, editMessage, mark=None):
+async def EditMessage(query: CallbackQuery, editMessage: str, mark: InlineKeyboardMarkup = None):
     """
     抓取編輯訊息錯誤, 以避免使用者點及兩次按鈕
     :param query:
@@ -327,16 +210,6 @@ async def EditMessage(query, editMessage, mark=None):
     except telegram.error.BadRequest:
         logger.warning('機器人嘗試編輯訊息錯誤')
         return
-    except telegram.error.NetworkError:
-        logger.error('網路錯誤', exc_info=True)
-        return
-    except telegram.error.TelegramError:
-        logger.error('Telegame API error  ', exc_info=True)
-        return
-    except SyntaxError:
-        logger.error('代碼寫錯了喔: ', exc_info=True)
-    except NameError:
-        logger.error('有個參數設定錯誤: ', exc_info=True)
 
 
 def FinalSaveData(data):
@@ -467,77 +340,3 @@ def hour_check_need(data):
     else:
         set_select_hour = 0
         return set_select_hour
-
-
-async def error_handler(update: object, context: ContextTypes.DEFAULT_TYPE) -> None:
-    """Log the error and send a telegram message to notify the developer."""
-    # Log the error before we do anything else, so we can see it even if something breaks.
-    logger.error("Telegram error ", exc_info=context.error)
-    await bot.sendMessage(DEV_ID, f"TG機器人發生了神奇的錯誤：{context.error}")
-
-
-def app():
-    """
-    開啟機器人
-    :return:
-    """
-    application = ApplicationBuilder().token(TOKEN).build()
-
-    application.add_error_handler(error_handler)
-    application.add_handler(CommandHandler(["start", "help"], start))
-    application.add_handler(CallbackQueryHandler(button))
-    application.add_handler(MessageHandler(filters.TEXT, handle_message))
-
-    print("機器人已上線")
-    logger.info('機器人已上線')
-    application.run_polling()
-
-
-def CheckFile():
-    result = DBHandler.QueryData("SELECT name FROM sqlite_master WHERE type='table' AND name='schedule';")
-    # 检查结果
-    if not result:
-        logger.warning("数据库中不存在名为 'schedule' 的表，正在創建 'schedule' 表")
-        DBHandler.DoSql('''
-        CREATE TABLE IF NOT EXISTS "schedule"
-        (
-        ID       INTEGER
-            primary key,
-        Message  TEXT    default 'No Message' not null,
-        UserID   INTEGER default -1           not null,
-        ChatID   INTEGER default -1           not null,
-        DateTime TEXT    default -1           not null,
-        UserTime TEXT    default 'na',
-        Send     TEXT    default 'False'
-        );
-                        ''')
-        logger.warning("'schedule' 表創建完成")
-
-
-def main():
-    """
-    程式入口
-    :return:
-    """
-    CheckFile()
-    app()
-
-
-if __name__ == "__main__":
-    try:
-        main()
-    except SyntaxError:
-        logger.error('代碼寫錯了喔: ', exc_info=True)
-    except NameError:
-        logger.error('有個參數設定錯誤: ', exc_info=True)
-    except telegram.error.NetworkError:
-        logger.error('telegram 網路錯誤: ', exc_info=True)
-    except telegram.error.TelegramError:
-        logger.error('telegram API 錯誤: ', exc_info=True)
-    except sqlite3.Error:
-        logger.error('sqlite3錯誤: ', exc_info=True)
-    except:
-        logger.error('其他錯誤: ', exc_info=True)
-    finally:
-        DBHandler.Close()
-        logger.info('logger end')

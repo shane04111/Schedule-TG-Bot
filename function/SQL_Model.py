@@ -1,8 +1,10 @@
 import os
 
-from function.SqlClass import *
-from function.my_time import *
 from dotenv import load_dotenv
+
+from function.SqlClass import Sql
+from function.loggr import logger
+from function.my_time import time_datetime
 
 load_dotenv()
 _DB = os.getenv("DB")
@@ -22,8 +24,9 @@ def SaveData(Message: str, UserID: int, ChatID: int, Year: int, Month: int, Day:
     :param Minute:      使用者輸入
     :return:
     """
-    DBHandler.InsertData(
-        '''INSERT INTO schedule (Message, UserID, ChatID, DateTime, UserTime) VALUES (?, ?, ?, ?, ?)''',
+    DBHandler.insertData(
+        'schedule', ('Message', 'UserID', 'ChatID', 'DateTime', 'UserTime'),
+        # '''INSERT INTO schedule (Message, UserID, ChatID, DateTime, UserTime) VALUES (?, ?, ?, ?, ?)''',
         (Message, UserID, ChatID, f"{Year}-{Month}-{Day} {Hour}:{Minute}:00", time_datetime()))
 
 
@@ -47,13 +50,9 @@ def ChangeSendTrue(delID: str):
     :param delID:
     :return:
     """
-    conn = sqlite3.connect(_DB)
-    cursor = conn.cursor()
     sql = "UPDATE schedule SET Send = 'True' WHERE ID = ?;"
     data = [delID]
-    cursor.execute(sql, data)
-    conn.commit()
-    conn.close()
+    DBHandler.InsertData(sql, data)
 
 
 def ChangeSendFalse(delID: str):
@@ -62,13 +61,9 @@ def ChangeSendFalse(delID: str):
     :param delID:
     :return:
     """
-    conn = sqlite3.connect(_DB)
-    cursor = conn.cursor()
-    sql = "UPDATE schedule SET Send = 'True' WHERE ID = ?;"
-    data = [delID]
-    cursor.execute(sql, data)
-    conn.commit()
-    conn.close()
+    sql = "UPDATE schedule SET Send = 'False' WHERE ID = ?;"
+    data = [delID, ]
+    DBHandler.InsertData(sql, data)
 
 
 def GetUserMessage(userId, chatID):
@@ -78,15 +73,9 @@ def GetUserMessage(userId, chatID):
     :param chatID: 使用者所在頻道ID
     :return:
     """
-    conn = sqlite3.connect(_DB)
-    cursor = conn.cursor()
     sql = "SELECT ID, Message, DateTime FROM schedule WHERE Send == 'False' AND UserID = ? AND ChatID = ?;"
     data = [userId, chatID]
-    cursor.execute(sql, data)
-    results = cursor.fetchall()
-    conn.commit()
-    conn.close()
-    return results
+    return DBHandler.QueryData(sql, data)
 
 
 def GetUserDoneMessage(userId, chatID):
@@ -96,29 +85,15 @@ def GetUserDoneMessage(userId, chatID):
     :param chatID: 使用者所在頻道ID
     :return:
     """
-    conn = sqlite3.connect(_DB)
-    cursor = conn.cursor()
-    sql = "SELECT ID, Message, DateTime FROM schedule WHERE Send == 'True' AND UserID = ? AND ChatID = ?;"
+    sql = """
+    SELECT ID, Message, DateTime 
+    FROM schedule 
+    WHERE Send == 'True' AND UserID = ? 
+    AND ChatID = ? 
+    ORDER BY ID 
+    DESC LIMIT 5;"""
     data = [userId, chatID]
-    cursor.execute(sql, data)
-    results = cursor.fetchall()
-    conn.commit()
-    conn.close()
-    return results
-
-
-def GetAllData():
-    """
-    抓取所有訊息
-    :return:
-    """
-    conn = sqlite3.connect(_DB)
-    cursor = conn.cursor()
-    cursor.execute("SELECT ID, Message, DateTime FROM schedule;")
-    results = cursor.fetchall()
-    conn.commit()
-    conn.close()
-    return results
+    return DBHandler.QueryData(sql, data)
 
 
 def GetIdData(GetId):
@@ -126,13 +101,19 @@ def GetIdData(GetId):
     抓取特定id資料
     :return:
     """
-    conn = sqlite3.connect(_DB)
-    cursor = conn.cursor()
-    cursor.execute("SELECT ID, Message, DateTime FROM schedule WHERE ID == ?;", [GetId, ])
-    results = cursor.fetchall()
-    conn.commit()
-    conn.close()
-    return results
+    sql = "SELECT ID, Message, DateTime FROM schedule WHERE ID == ?;"
+    data = [GetId, ]
+    return DBHandler.QueryData(sql, data)
+
+
+def GetIdUserData(GetId, userId, chatId):
+    """
+    抓取特定id資料
+    :return:
+    """
+    sql = "SELECT ID, Message, DateTime FROM schedule WHERE ID == ? AND UserID == ? AND ChatID == ?;"
+    data = [GetId, userId, chatId, ]
+    return DBHandler.QueryData(sql, data)
 
 
 def GetLotId(IdFirst: int, IdLest: int):
@@ -140,10 +121,27 @@ def GetLotId(IdFirst: int, IdLest: int):
         抓取特定區間id資料
         :return:
     """
-    conn = sqlite3.connect(_DB)
-    cursor = conn.cursor()
-    cursor.execute("SELECT ID, Message, DateTime FROM schedule WHERE ID BETWEEN ? AND ?;", [IdFirst, IdLest, ])
-    results = cursor.fetchall()
-    conn.commit()
-    conn.close()
-    return results
+    sql = "SELECT ID, Message, DateTime FROM schedule WHERE ID BETWEEN ? AND ?;"
+    data = [IdFirst, IdLest, ]
+    return DBHandler.QueryData(sql, data)
+
+
+def CheckFile():
+    result = DBHandler.QueryData("SELECT name FROM sqlite_master WHERE type='table' AND name='schedule';")
+    # 检查结果
+    if not result:
+        logger.warning("数据库中不存在名为 'schedule' 的表，正在創建 'schedule' 表")
+        DBHandler.DoSql('''
+        CREATE TABLE IF NOT EXISTS "schedule"
+        (
+        ID       INTEGER
+            primary key,
+        Message  TEXT    default 'No Message' not null,
+        UserID   INTEGER default -1           not null,
+        ChatID   INTEGER default -1           not null,
+        DateTime TEXT    default -1           not null,
+        UserTime TEXT    default 'na',
+        Send     TEXT    default 'False'
+        );
+                        ''')
+        logger.warning("'schedule' 表創建完成")

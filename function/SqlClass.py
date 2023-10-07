@@ -43,6 +43,13 @@ class Sql:
         except sqlite3.Error:
             logger.error('try query database error ', exc_info=True)
 
+    def insertData(self, tableName, columns, data):
+        sql = f"""
+        INSERT INTO {tableName} {columns} VALUES ({', '.join(['?'] * len(columns))})
+        """
+        self.cursor.execute(sql, data)
+        self.conn.commit()
+
     def InsertData(self, sql, data):
         try:
             self.cursor.execute(sql, data)
