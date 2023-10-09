@@ -1,4 +1,4 @@
-from telegram import InlineKeyboardButton
+from telegram import InlineKeyboardButton, InlineKeyboardMarkup
 from function.my_time import time_minute, time_second
 
 
@@ -51,5 +51,6 @@ def minute_select(check_min: bool):
         InlineKeyboardButton("回到上一頁", callback_data="MIN_back"),
         InlineKeyboardButton("取消設定", callback_data='cancel')
     ])
+    finalResult = InlineKeyboardMarkup(result)
 
-    return result
+    return finalResult

@@ -1,9 +1,10 @@
 from telegram import Bot
-from function.SQL_Model import GetData, ChangeSendTrue
+from function.ScheduleModel import GetData, ChangeSendTrue, DBHandler
 from dotenv import load_dotenv
 import os
 import asyncio
 
+DBHandler.sendConnect()
 load_dotenv()
 TOKEN = os.getenv("TOKEN")
 bot = Bot(token=TOKEN)
@@ -20,6 +21,4 @@ async def main():
         await bot.sendMessage(index[1], index[0])
         ChangeSendTrue(str(index[2]))
 
-
-if __name__ == "__main__":
-    asyncio.run(main())  # 使用 asyncio.run 来运行异步代码
+asyncio.run(main())  # 使用 asyncio.run 来运行异步代码

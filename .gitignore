@@ -3,12 +3,12 @@
 __pycache__/*
 data/
 **/__pycache__/
+/log/
 data/schedule.json
 data/schedule_data.bd
-schedule.json
 schedule_data.db
 run.bat
 send.bat
 .env
 data/schedule.csv
-/log/
+test.py
