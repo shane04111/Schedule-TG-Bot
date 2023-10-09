@@ -8,7 +8,7 @@ from function.my_time import time_year, time_month, time_day
 true_false_text = InlineKeyboardMarkup([
     [
         InlineKeyboardButton("確認", callback_data='text_true'),
-        InlineKeyboardButton("取消", callback_data='text_false')
+        InlineKeyboardButton("取消", callback_data='cancel')
     ]
 ])
 
