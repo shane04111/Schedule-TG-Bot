@@ -5,7 +5,8 @@ from dotenv import load_dotenv
 from telegram import Update, Bot
 from telegram.ext import ContextTypes
 
-from function.SQL_Model import GetUserMessage, GetUserDoneMessage, GetIdData, GetIdUserData
+from function.ScheduleModel import GetUserMessage, GetUserDoneMessage, GetIdData, GetIdUserData
+from function.UserDataModel import ScheduleStart
 from function.deleteMessage import CreateDeleteButton, CreateRedoButton
 from function.loggr import logger
 from function.replay_markup import true_false_text
@@ -15,7 +16,7 @@ TOKEN = os.getenv('TOKEN')
 DEV_ID = os.getenv('DEV')
 DEV_array = [os.getenv("DEV"), os.getenv("DEV1")]
 bot = Bot(token=TOKEN)
-user_data = {}
+# user_data = {}
 
 
 async def MessageHandle(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -38,10 +39,10 @@ async def MessageHandle(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
     checkCommands = r"(![sS]|/[sS])(chedule)?(@EZMinder_bot)?"
     deleteCommands = r"(![dD]|/[dD])(elete)?(@EZMinder_bot)?"
     redoCommands = r"(![rR]|/[rR])(edo)?(@EZMinder_bot)?"
-    if re.match(checkCommands, text):
-        await SetSchedule(update, checkCommands, text, user_id, chat_id)
-    elif text == "!id" and user_id == DEV_ID:
+    if text == "!id" and str(user_id) == DEV_ID:
         await update.message.reply_text(f"{update.message.message_id}")
+    elif re.match(checkCommands, text):
+        await SetSchedule(update, checkCommands, text, user_id, chat_id)
     elif re.match(deleteCommands, text):
         await DoCommands(update, DelData, "請選取要刪除的提醒訊息", CreateDeleteButton(user_id, chat_id),
                          user_id, chat_id)
@@ -70,11 +71,12 @@ async def DoCommands(update: Update, Data, ReplayText, ButtonMark, user_id, chat
     if Data:
         msg = await update.message.reply_text(ReplayText, reply_markup=ButtonMark)
         msgID = msg.message_id
-        user_data[f"{user_id}|{chat_id}|{msgID}"] = {
-            "user_id": user_id,
-            "chat_id": chat_id,
-            "message_id": msgID
-        }
+        ScheduleStart(user_id, chat_id, msgID)
+        # user_data[f"{user_id}|{chat_id}|{msgID}"] = {
+        #     "user_id": user_id,
+        #     "chat_id": chat_id,
+        #     "message_id": msgID
+        # }
     else:
         await update.message.reply_text("尚未設定提醒")
 
@@ -111,12 +113,13 @@ async def StartSet(update, text, user, chat):
         await update.message.reply_text(text)
         msg = await update.message.reply_text("是否提醒上述事項", reply_markup=true_false_text)
     messageID = msg.message_id
-    user_data[f"{user}|{chat}|{messageID}"] = {
-        "text": text,
-        "user_id": user,
-        "chat_id": chat,
-        "message_id": messageID
-    }
+    ScheduleStart(user, chat, messageID, text)
+    # user_data[f"{user}|{chat}|{messageID}"] = {
+    #     "text": text,
+    #     "user_id": user,
+    #     "chat_id": chat,
+    #     "message_id": messageID
+    # }
 
 
 async def SearchId(update, id_match, chat_id, user_id, isDEV: bool = True):
