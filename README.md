@@ -7,7 +7,7 @@
 - data/database.db
 - .env
 
-##pip
+## pip
 
 ```pip
 pip install python-telegram-bot
