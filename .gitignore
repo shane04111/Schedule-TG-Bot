@@ -1,6 +1,7 @@
 /.vscode/
 .idea/*
 __pycache__/*
+myproject-env/*
 data/
 **/__pycache__/
 /log/
@@ -12,3 +13,4 @@ send.bat
 .env
 data/schedule.csv
 test.py
+send.log
