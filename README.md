@@ -1,7 +1,7 @@
 # Schedule-TG-Bot
 
 這是一台提醒機器人
-如過需要使用需要創建以下資料
+如果需要使用，需要創建以下資料:
 
 - log/
 - data/database.db
