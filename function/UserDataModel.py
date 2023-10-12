@@ -8,6 +8,39 @@ def ScheduleStart(user, chat, message, text: str = None):
     DBHandler.insertData('UserData', columns, data)
 
 
+class DoDataInsert:
+    def __init__(self):
+        self._setSql = []
+        self._data = []
+
+    def Del(self):
+        self._setSql.append('"Delete"')
+        self._data.append('True')
+        return self
+
+    def Redo(self):
+        self._setSql.append('Redo')
+        self._data.append('True')
+        return self
+
+    def init(self, user, chat, message):
+        self._setSql.append('UserID')
+        self._data.append(user)
+        self._setSql.append('ChatID')
+        self._data.append(chat)
+        self._setSql.append('MessageID')
+        self._data.append(message)
+        self._setSql.append('StartTime')
+        self._data.append(time_datetime())
+        self._doInsert()
+
+    def _doInsert(self):
+        columns = tuple(self._setSql)
+        data = tuple(self._data)
+        print(columns, data)
+        DBHandler.insertData('UserData', columns, data)
+
+
 class UserDataInsert:
     def __init__(self, ID):
         self._databaseID = ID
