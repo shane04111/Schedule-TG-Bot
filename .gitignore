@@ -1,6 +1,5 @@
 /.vscode/
 .idea/*
-__pycache__/*
 data/
 **/__pycache__/
 /log/
@@ -11,4 +10,4 @@ run.bat
 send.bat
 .env
 data/schedule.csv
-test.py
+send.log

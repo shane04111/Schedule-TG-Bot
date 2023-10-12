@@ -30,20 +30,6 @@ def SaveData(Message: str, UserID: int, ChatID: int, Year: int, Month: int, Day:
         (Message, UserID, ChatID, f"{Year}-{Month}-{Day} {Hour}:{Minute}:00", time_datetime()))
 
 
-def GetData():
-    """
-    抓取時間比目前還要早並且尚未通知使用者過的訊息
-    :return:
-    """
-    results = DBHandler.QueryData('''
-    SELECT Message, ChatID, ID 
-    FROM schedule 
-    WHERE datetime(DateTime) <= datetime('now', 'localtime') 
-    AND Send == 'False';
-    ''')
-    return results
-
-
 def ChangeSendTrue(delID: str):
     """
     將提檢查提醒欄位轉為已提醒
@@ -52,17 +38,6 @@ def ChangeSendTrue(delID: str):
     """
     sql = "UPDATE schedule SET Send = 'True' WHERE ID = ?;"
     data = [delID]
-    DBHandler.InsertData(sql, data)
-
-
-def ChangeSendFalse(delID: str):
-    """
-    將提檢查提醒欄位轉為未提醒
-    :param delID:
-    :return:
-    """
-    sql = "UPDATE schedule SET Send = 'False' WHERE ID = ?;"
-    data = [delID, ]
     DBHandler.InsertData(sql, data)
 
 

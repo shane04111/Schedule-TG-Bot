@@ -44,7 +44,7 @@ def app():
 
     print("機器人已上線")
     logger.info('機器人已上線')
-    application.run_polling()
+    application.run_polling(poll_interval=0.1, allowed_updates=Update.ALL_TYPES)
 
 
 def main():

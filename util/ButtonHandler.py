@@ -1,9 +1,7 @@
-import os
 import re
 
 import telegram
-from dotenv import load_dotenv
-from telegram import Update, CallbackQuery, InlineKeyboardMarkup, Bot
+from telegram import Update, CallbackQuery, InlineKeyboardMarkup
 from telegram.ext import ContextTypes
 
 from function.ScheduleModel import ChangeSendTrue, GetUserMessage, GetIdData, SaveData
@@ -15,10 +13,7 @@ from function.loggr import logger
 from function.minute_select import minute_select
 from function.my_time import time_year, time_month, time_day, time_minute, time_hour
 from function.replay_markup import time_chose_data_function, true_false_text, check_YMD, config_check
-
-load_dotenv()
-TOKEN = os.getenv('TOKEN')
-bot = Bot(token=TOKEN)
+from util import MessageLen, bot
 
 
 async def ScheduleButton(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -27,7 +22,7 @@ async def ScheduleButton(update: Update, context: ContextTypes.DEFAULT_TYPE):
         :param update:
         :param context:
         :return:
-        """
+    """
     query = update.callback_query
     query_user_id = query.from_user.id
     query_chat_id = query.message.chat.id
@@ -54,7 +49,7 @@ async def ScheduleButton(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await EditMessage(query, "請選擇提醒時間", time_chose_data_function())
         elif query.data == "time_back":
             text = UserData.text
-            if len(text) <= 1900:
+            if len(text) <= MessageLen:
                 await EditMessage(query, f"請確認提醒事項：{text}", true_false_text)
             else:
                 await EditMessage(query, "是否提醒上述事項", true_false_text)
@@ -184,7 +179,7 @@ async def ScheduleButton(update: Update, context: ContextTypes.DEFAULT_TYPE):
             data = GetIdData(get_redo)
             text = data[0][1]
             insert.Text(text)
-            if len(text) >= 1900:
+            if len(text) >= MessageLen:
                 await bot.sendMessage(query_chat_id, text)
                 await EditMessage(query, "是否提醒上述事項", true_false_text)
             else:
@@ -281,7 +276,7 @@ def message_check_text(key):
     :return:
     """
     data = CheckUser(**key)
-    if len(data.text) <= 1900:
+    if len(data.text) <= MessageLen:
         edit_message = f"是否選擇{data.year}/{str(data.month).zfill(2)}/{str(data.day).zfill(2)} \
             \n{convert_to_chinese_time(data.hour)}{minute_to_chinese(data.minute)}提醒\n提醒事項：{data.text}"
     else:
