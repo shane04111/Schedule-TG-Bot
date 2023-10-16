@@ -31,4 +31,4 @@ def ChangeSendTrue(delID: str):
     """
     sql = "UPDATE schedule SET Send = 'True' WHERE ID = ?;"
     data = [delID]
-    DBHandler.InsertData(sql, data)
+    DBHandler.DoSqlData(sql, data)

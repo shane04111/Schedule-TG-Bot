@@ -3,8 +3,10 @@ import re
 from telegram import Update
 from telegram.ext import ContextTypes
 
+from function import lg
 from function.ScheduleModel import GetUserMessage, GetUserDoneMessage, GetIdData, GetIdUserData
 from function.UserDataModel import ScheduleStart, DoDataInsert
+from function.UserLocalModel import UserLocal
 from function.deleteMessage import CreateDeleteButton, CreateRedoButton
 from function.loggr import logger
 from function.replay_markup import true_false_text
@@ -19,10 +21,21 @@ async def MessageHandle(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
     :return:
     """
     text = None
-    user_id = update.message.from_user.id
-    chat_id = update.message.chat.id
-    if update.message and update.message.text:
-        text = update.message.text
+    updateMsg = update.message
+    user_id = updateMsg.from_user.id
+    chat_id = updateMsg.chat.id
+    local = UserLocal(chat_id)
+    defaultLanguage = updateMsg.from_user.language_code
+    if local.Check:
+        language = local.Language
+    elif defaultLanguage is None and defaultLanguage not in lg.lang and not local.Check:
+        local.initUserLocal()
+        language = "zh-hant"
+    else:
+        local.initUserLocal(defaultLanguage)
+        language = defaultLanguage
+    if updateMsg and updateMsg.text:
+        text = updateMsg.text
     else:
         logger.warning(f"消息為空或無文本內容, user:{user_id}, chat:{chat_id}", exc_info=True)
     DelData = GetUserMessage(user_id, chat_id)
@@ -32,9 +45,9 @@ async def MessageHandle(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
     deleteCommands = r"(![dD]|/[dD])(elete)?(@EZMinder_bot)?"
     redoCommands = r"(![rR]|/[rR])(edo)?(@EZMinder_bot)?"
     if text == "!id" and str(user_id) == DEV_ID:
-        await update.message.reply_text(f"{update.message.message_id}")
+        await updateMsg.reply_text(f"{updateMsg.message_id}")
     elif re.match(checkCommands, text):
-        await SetSchedule(update, checkCommands, text, user_id, chat_id)
+        await SetSchedule(update, checkCommands, text, user_id, chat_id, language)
     elif re.match(deleteCommands, text):
         await DoCommands(update, DelData, "請選取要刪除的提醒訊息", CreateDeleteButton(user_id, chat_id),
                          user_id, chat_id)
@@ -45,7 +58,7 @@ async def MessageHandle(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
         await SearchId(update, id_match, chat_id, user_id)
     elif id_match:
         await SearchId(update, id_match, chat_id, user_id, False)
-    elif update.message.chat.type == "private":
+    elif updateMsg.chat.type == "private":
         await StartSet(update, text, user_id, chat_id)
 
 
@@ -71,7 +84,7 @@ async def DoCommands(update: Update, Data, ReplayText, ButtonMark, user_id, chat
         await update.message.reply_text("尚未設定提醒")
 
 
-async def SetSchedule(update, checkCommands, text, user_id, chat_id):
+async def SetSchedule(update: Update, checkCommands, text, user_id, chat_id, lang):
     """
     設定提醒事項
     :param update:
@@ -79,16 +92,17 @@ async def SetSchedule(update, checkCommands, text, user_id, chat_id):
     :param text: 使用者輸入訊息
     :param user_id: 使用者id
     :param chat_id: 頻道id
+    :param lang: 使用者語言
     :return:
     """
     clear_text = re.sub(checkCommands, "", text).strip()
     if clear_text == "":
-        await update.message.reply_text("請重新使用命令並在後面加上提醒事項")
+        await update.message.reply_text(lg.get("schedule.none.error", lang))
     else:
         await StartSet(update, clear_text, user_id, chat_id)
 
 
-async def StartSet(update, text, user, chat):
+async def StartSet(update: Update, text, user, chat):
     """
     判斷是否過長並給出相對的詢問
     :param update:
@@ -106,7 +120,7 @@ async def StartSet(update, text, user, chat):
     ScheduleStart(user, chat, messageID, text)
 
 
-async def SearchId(update, id_match, chat_id, user_id, isDEV: bool = True):
+async def SearchId(update: Update, id_match, chat_id, user_id, isDEV: bool = True):
     """
     尋找特定id訊息，並將提醒內容傳給使用者
     :param update:
