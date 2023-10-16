@@ -2,9 +2,9 @@ import os
 
 from dotenv import load_dotenv
 
-from function.SqlClass import Sql
-from function.loggr import logger
-from function.my_time import time_datetime
+from src.function.SqlClass import Sql
+from src.function.loggr import logger
+from src.function.my_time import time_datetime
 
 load_dotenv()
 _DB = os.getenv("DB")
@@ -26,7 +26,6 @@ def SaveData(Message: str, UserID: int, ChatID: int, Year: int, Month: int, Day:
     """
     DBHandler.insertData(
         'schedule', ('Message', 'UserID', 'ChatID', 'DateTime', 'UserTime'),
-        # '''INSERT INTO schedule (Message, UserID, ChatID, DateTime, UserTime) VALUES (?, ?, ?, ?, ?)''',
         (Message, UserID, ChatID, f"{Year}-{Month}-{Day} {Hour}:{Minute}:00", time_datetime()))
 
 
@@ -38,7 +37,7 @@ def ChangeSendTrue(delID: str):
     """
     sql = "UPDATE schedule SET Send = 'True' WHERE ID = ?;"
     data = [delID]
-    DBHandler.InsertData(sql, data)
+    DBHandler.DoSqlData(sql, data)
 
 
 def GetUserMessage(userId, chatID):
@@ -63,7 +62,7 @@ def GetUserDoneMessage(userId, chatID):
     sql = """
     SELECT ID, Message, DateTime 
     FROM schedule 
-    WHERE Send == 'True' AND UserID = ? 
+    WHERE UserID = ? 
     AND ChatID = ? 
     ORDER BY ID 
     DESC LIMIT 5;"""

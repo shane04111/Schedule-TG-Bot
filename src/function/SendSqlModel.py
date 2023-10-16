@@ -2,7 +2,7 @@ import os
 
 from dotenv import load_dotenv
 
-from function.SqlClass import Sql
+from src.function.SqlClass import Sql
 
 load_dotenv()
 _DB = os.getenv("DB")
@@ -31,4 +31,4 @@ def ChangeSendTrue(delID: str):
     """
     sql = "UPDATE schedule SET Send = 'True' WHERE ID = ?;"
     data = [delID]
-    DBHandler.InsertData(sql, data)
+    DBHandler.DoSqlData(sql, data)

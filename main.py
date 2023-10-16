@@ -6,10 +6,10 @@ from sqlite3 import Error
 from telegram import Bot, Update
 from telegram.ext import ContextTypes, ApplicationBuilder, CommandHandler, CallbackQueryHandler, MessageHandler, filters
 
-from function.ScheduleModel import DBHandler, CheckFile
-from function.loggr import logger
-from util.ButtonHandler import ScheduleButton
-from util.MessageHandle import MessageHandle
+from src.function.ScheduleModel import DBHandler, CheckFile
+from src.function.loggr import logger
+from src.util.ButtonHandler import ScheduleButton
+from src.util.MessageHandle import MessageHandle
 
 logger.info('logger start')
 DBHandler.connect()

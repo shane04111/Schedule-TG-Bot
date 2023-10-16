@@ -1,5 +1,5 @@
-from function.ScheduleModel import DBHandler
-from function.my_time import time_datetime
+from src.function.ScheduleModel import DBHandler
+from src.function.my_time import time_datetime
 
 
 def ScheduleStart(user, chat, message, text: str = None):
@@ -14,7 +14,7 @@ class DoDataInsert:
         self._data = []
 
     def Del(self):
-        self._setSql.append('"Delete"')
+        self._setSql.append('Delete')
         self._data.append('True')
         return self
 
@@ -37,7 +37,6 @@ class DoDataInsert:
     def _doInsert(self):
         columns = tuple(self._setSql)
         data = tuple(self._data)
-        print(columns, data)
         DBHandler.insertData('UserData', columns, data)
 
 
@@ -99,7 +98,7 @@ class UserDataInsert:
         SET {self._setData()} 
         WHERE ID = ?;
         """
-        DBHandler.InsertData(sql, (self._databaseID,))
+        DBHandler.DoSqlData(sql, (self._databaseID,))
 
 
 class UserData:
