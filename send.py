@@ -1,5 +1,5 @@
 from telegram import Bot
-from function.SendSqlModel import GetData, ChangeSendTrue, DBHandler
+from src.function.SendSqlModel import GetData, ChangeSendTrue, DBHandler
 from dotenv import load_dotenv
 import os
 import asyncio

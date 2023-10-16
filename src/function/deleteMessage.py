@@ -1,5 +1,5 @@
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup
-from function.ScheduleModel import GetUserMessage, GetUserDoneMessage
+from src.function.ScheduleModel import GetUserMessage, GetUserDoneMessage
 
 
 def CreateDeleteButton(user, chat):

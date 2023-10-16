@@ -1,51 +1,53 @@
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup
 
-from function.month_to_day import month_to_day
-from function.my_time import time_year, time_month, time_day
-
-# ======================================================================================
-
-true_false_text = InlineKeyboardMarkup([
-    [
-        InlineKeyboardButton("確認", callback_data='text_true'),
-        InlineKeyboardButton("取消", callback_data='cancel')
-    ]
-])
-
-# ======================================================================================
-
-config_check = InlineKeyboardMarkup([
-    [
-        InlineKeyboardButton("是", callback_data='config_true'),
-        InlineKeyboardButton("否", callback_data='config_false')
-    ],
-    [
-        InlineKeyboardButton("返回上一頁", callback_data='config_back'),
-        InlineKeyboardButton("取消設定", callback_data='cancel')
-    ]
-])
-
-# ======================================================================================
+from src.function import lg
+from src.function.month_to_day import month_to_day
+from src.function.my_time import time_year, time_month, time_day, time_date
 
 
-def time_chose_data_function():
+def true_false_text(lang) -> InlineKeyboardMarkup:
+    TF = InlineKeyboardMarkup([
+        [
+            InlineKeyboardButton(lg.get("button.text.true", lang), callback_data='text_true'),
+            InlineKeyboardButton(lg.get("button.text.false", lang), callback_data='cancel')
+        ]
+    ])
+    return TF
+
+
+def config_check(lang) -> InlineKeyboardMarkup:
+    check = InlineKeyboardMarkup([
+        [
+            InlineKeyboardButton(lg.get("button.config.true", lang), callback_data='config_true'),
+            InlineKeyboardButton(lg.get("button.config.false", lang), callback_data='config_false')
+        ],
+        [
+            InlineKeyboardButton(lg.get('button.back', lang), callback_data='config_back'),
+            InlineKeyboardButton(lg.get('button.cancel', lang), callback_data='cancel')
+        ]
+    ])
+    return check
+
+
+def time_chose_data_function(lang) -> InlineKeyboardMarkup:
     """
     判斷時間並返回相對應設定時間按鈕
+    :param lang:
     :return:
     """
     get_year = check_YMD().year
     get_month = check_YMD().month
     time_chose_data = [
         [InlineKeyboardButton(
-            f"設定日期為今天{time_year()}/{time_month()}/{time_day()}", callback_data='today')],
+            f"{lg.get('button.set_today', lang, time_date().strftime('%Y/%m/%d'))}", callback_data='today')],
         [InlineKeyboardButton(
-            f"自訂義日，設定年份和月份為{get_year}/{get_month}", callback_data='set_day')],
+            f"{lg.get('button.set_day', lang, time_date().strftime('%Y/%m'))}", callback_data='set_day')],
         [InlineKeyboardButton(
-            f"自訂義月和日，年設定為{get_year}", callback_data='only_year')],
-        [InlineKeyboardButton("自訂義日期", callback_data='all_set')],
+            f"{lg.get('button.set_year', lang, time_date().strftime('%Y'))}", callback_data='only_year')],
+        [InlineKeyboardButton(f"{lg.get('button.set_all', lang)}", callback_data='all_set')],
         [
-            InlineKeyboardButton("返回上一頁", callback_data='time_back'),
-            InlineKeyboardButton("取消設定", callback_data='cancel')
+            InlineKeyboardButton(lg.get('button.back', lang), callback_data='time_back'),
+            InlineKeyboardButton(lg.get('button.cancel', lang), callback_data='cancel')
         ]
     ]
     time_chose = InlineKeyboardMarkup(time_chose_data)

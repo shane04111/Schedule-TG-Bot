@@ -1,5 +1,5 @@
-from function.ScheduleModel import DBHandler
-from function.my_time import time_datetime
+from src.function.ScheduleModel import DBHandler
+from src.function.my_time import time_datetime
 
 
 def ScheduleStart(user, chat, message, text: str = None):

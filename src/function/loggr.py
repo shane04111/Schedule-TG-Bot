@@ -2,7 +2,7 @@ import logging
 import os
 from datetime import datetime
 
-_FILE = os.path.dirname(os.path.dirname(__file__))
+_FILE = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
 _FILEPATH = f"{_FILE}/log"
 checkFileTime = False
 if not checkFileTime:

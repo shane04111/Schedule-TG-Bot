@@ -1,5 +1,5 @@
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup
-from function.my_time import time_minute, time_second
+from src.function.my_time import time_minute, time_second
 
 
 def check_minute_time(minute):

@@ -1,5 +1,5 @@
 import sqlite3
-from function.loggr import logger
+from src.function.loggr import logger
 
 
 class Sql:

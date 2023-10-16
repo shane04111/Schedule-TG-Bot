@@ -3,14 +3,14 @@ import re
 from telegram import Update
 from telegram.ext import ContextTypes
 
-from function import lg
-from function.ScheduleModel import GetUserMessage, GetUserDoneMessage, GetIdData, GetIdUserData
-from function.UserDataModel import ScheduleStart, DoDataInsert
-from function.UserLocalModel import UserLocal
-from function.deleteMessage import CreateDeleteButton, CreateRedoButton
-from function.loggr import logger
-from function.replay_markup import true_false_text
-from util import MessageLen, DEV_ID, DEV_array, bot
+from src.function import lg
+from src.function.ScheduleModel import GetUserMessage, GetUserDoneMessage, GetIdData, GetIdUserData
+from src.function.UserDataModel import ScheduleStart, DoDataInsert
+from src.function.UserLocalModel import UserLocal
+from src.function.deleteMessage import CreateDeleteButton, CreateRedoButton
+from src.function.loggr import logger
+from src.function.replay_markup import true_false_text
+from src.util import MessageLen, DEV_ID, DEV_array, bot
 
 
 async def MessageHandle(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -25,15 +25,7 @@ async def MessageHandle(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
     user_id = updateMsg.from_user.id
     chat_id = updateMsg.chat.id
     local = UserLocal(chat_id)
-    defaultLanguage = updateMsg.from_user.language_code
-    if local.Check:
-        language = local.Language
-    elif defaultLanguage is None and defaultLanguage not in lg.lang and not local.Check:
-        local.initUserLocal()
-        language = "zh-hant"
-    else:
-        local.initUserLocal(defaultLanguage)
-        language = defaultLanguage
+    language = lg.getDefault(local, updateMsg.from_user.language_code)
     if updateMsg and updateMsg.text:
         text = updateMsg.text
     else:
@@ -49,20 +41,20 @@ async def MessageHandle(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
     elif re.match(checkCommands, text):
         await SetSchedule(update, checkCommands, text, user_id, chat_id, language)
     elif re.match(deleteCommands, text):
-        await DoCommands(update, DelData, "請選取要刪除的提醒訊息", CreateDeleteButton(user_id, chat_id),
-                         user_id, chat_id)
+        await DoCommands(update, DelData, "schedule.delete.start", CreateDeleteButton(user_id, chat_id),
+                         user_id, chat_id, language)
     elif re.match(redoCommands, text):
-        await DoCommands(update, RedoData, "請選擇要重新提醒的訊息", CreateRedoButton(user_id, chat_id),
-                         user_id, chat_id)
+        await DoCommands(update, RedoData, "schedule.redo.start", CreateRedoButton(user_id, chat_id),
+                         user_id, chat_id, language)
     elif id_match and str(user_id) in DEV_array:
-        await SearchId(update, id_match, chat_id, user_id)
+        await SearchId(update, id_match, chat_id, user_id, language)
     elif id_match:
-        await SearchId(update, id_match, chat_id, user_id, False)
+        await SearchId(update, id_match, chat_id, user_id, language, False)
     elif updateMsg.chat.type == "private":
-        await StartSet(update, text, user_id, chat_id)
+        await StartSet(update, text, user_id, chat_id, language)
 
 
-async def DoCommands(update: Update, Data, ReplayText, ButtonMark, user_id, chat_id):
+async def DoCommands(update: Update, Data, ReplayText, ButtonMark, user_id, chat_id, lang):
     """
     回復傳入訊息並根據傳入資料建立訊息之按鈕
     :param update:
@@ -71,17 +63,18 @@ async def DoCommands(update: Update, Data, ReplayText, ButtonMark, user_id, chat
     :param ButtonMark: 建立按鈕
     :param user_id: 使用者id
     :param chat_id: 頻道id
+    :param lang:
     :return:
     """
     if Data:
-        msg = await update.message.reply_text(ReplayText, reply_markup=ButtonMark)
+        msg = await update.message.reply_text(lg.get(ReplayText, lang), reply_markup=ButtonMark)
         msgID = msg.message_id
-        if ReplayText == '請選取要刪除的提醒訊息':
+        if ReplayText == 'schedule.delete.start':
             DoDataInsert().Del().init(user_id, chat_id, msgID)
         else:
             DoDataInsert().Redo().init(user_id, user_id, msgID)
     else:
-        await update.message.reply_text("尚未設定提醒")
+        await update.message.reply_text(lg.get("schedule.both.none", lang))
 
 
 async def SetSchedule(update: Update, checkCommands, text, user_id, chat_id, lang):
@@ -99,34 +92,38 @@ async def SetSchedule(update: Update, checkCommands, text, user_id, chat_id, lan
     if clear_text == "":
         await update.message.reply_text(lg.get("schedule.none.error", lang))
     else:
-        await StartSet(update, clear_text, user_id, chat_id)
+        await StartSet(update, clear_text, user_id, chat_id, lang)
 
 
-async def StartSet(update: Update, text, user, chat):
+async def StartSet(update: Update, text, user, chat, lang):
     """
     判斷是否過長並給出相對的詢問
     :param update:
     :param text: 使用者輸入之訊息
     :param user: 使用者id
     :param chat: 聊天頻道
+    :param lang: 翻譯語言
     :return:
     """
     if len(text) <= MessageLen:
-        msg = await update.message.reply_text(f"請確認提醒事項：\n{text}", reply_markup=true_false_text)
+        msg = await update.message.reply_text(f"{lg.get('schedule.reminder.check.short', lang, text)}",
+                                              reply_markup=true_false_text(lang))
     else:
         await update.message.reply_text(text)
-        msg = await update.message.reply_text("是否提醒上述事項", reply_markup=true_false_text)
+        msg = await update.message.reply_text(text=lg.get('schedule.reminder.check.long', lang),
+                                              reply_markup=true_false_text(lang))
     messageID = msg.message_id
     ScheduleStart(user, chat, messageID, text)
 
 
-async def SearchId(update: Update, id_match, chat_id, user_id, isDEV: bool = True):
+async def SearchId(update: Update, id_match, chat_id, user_id, lang: str, isDEV: bool = True):
     """
     尋找特定id訊息，並將提醒內容傳給使用者
     :param update:
     :param id_match: 使用者輸入指令
     :param chat_id: 頻道id
     :param user_id: 使用者id
+    :param lang:
     :param isDEV: 檢查是否為開發人員
     :return:
     """
@@ -138,18 +135,21 @@ async def SearchId(update: Update, id_match, chat_id, user_id, isDEV: bool = Tru
     else:
         data = GetIdUserData(get_Need_Id, user_id, chat_id)
     for item in data:
-        if item:
-            item1 = str(item[1])
-            if len(item1) <= 1800:
-                formatted_item = f"提醒時間: {item[2]} |提醒事項: \n{item[1]}"
-            else:
-                formatted_item = f"提醒時間: {item[2]} |提醒事項: \n"
-                long_item = f"{item[1]}"
-    if formatted_item is None:
-        await update.message.reply_text(f"ID {get_Need_Id} 不存在")
-    else:
-        if long_item is None:
-            await update.message.reply_text(f"ID {get_Need_Id} 的資料是\n{formatted_item}")
+        if not item:
+            return
+        item1 = str(item[1])
+        if len(item1) <= 1800:
+            formatted_item = (f"{lg.get('id.time', lang, item[2])} |"
+                              f"{lg.get('id.short.reminder', lang, item[1])}")
         else:
-            await update.message.reply_text(f"ID {get_Need_Id} 的資料是\n{formatted_item}")
-            await bot.send_message(chat_id, long_item)
+            formatted_item = (f"{lg.get('id.time', lang, item[2])} |"
+                              f"{lg.get('id.long.reminder', lang)}")
+            long_item = item[1]
+    if formatted_item is None:
+        await update.message.reply_text(f"{lg.get('id.none', lang, get_Need_Id)}")
+        return
+    if long_item is None:
+        await update.message.reply_text(f"{lg.get('id.get', lang, get_Need_Id)}\n{formatted_item}")
+    else:
+        await update.message.reply_text(f"{lg.get('id.get', lang, get_Need_Id)}\n{formatted_item}")
+        await bot.send_message(chat_id, long_item)

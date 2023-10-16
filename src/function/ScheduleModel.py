@@ -2,9 +2,9 @@ import os
 
 from dotenv import load_dotenv
 
-from function.SqlClass import Sql
-from function.loggr import logger
-from function.my_time import time_datetime
+from src.function.SqlClass import Sql
+from src.function.loggr import logger
+from src.function.my_time import time_datetime
 
 load_dotenv()
 _DB = os.getenv("DB")

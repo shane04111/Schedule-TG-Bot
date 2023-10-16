@@ -2,7 +2,7 @@ import os
 
 from dotenv import load_dotenv
 
-from function.SqlClass import Sql
+from src.function.SqlClass import Sql
 
 load_dotenv()
 _DB = os.getenv("DB")
