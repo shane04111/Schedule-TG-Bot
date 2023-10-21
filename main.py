@@ -1,3 +1,4 @@
+import logging
 import os
 
 import telegram.error
@@ -7,7 +8,7 @@ from telegram import Bot, Update
 from telegram.ext import ContextTypes, ApplicationBuilder, CommandHandler, CallbackQueryHandler, MessageHandler, filters
 
 from src.function.ScheduleModel import DBHandler, CheckFile
-from src.function.loggr import logger
+from src.function.loggr import logger, logFinal
 from src.util.ButtonHandler import ScheduleButton
 from src.util.MessageHandle import MessageHandle
 
@@ -44,7 +45,7 @@ def app():
 
     print("機器人已上線")
     logger.info('機器人已上線')
-    application.run_polling(poll_interval=0.1, allowed_updates=Update.ALL_TYPES)
+    application.run_polling(poll_interval=1, allowed_updates=Update.ALL_TYPES)
 
 
 def main():
@@ -74,3 +75,5 @@ if __name__ == "__main__":
     finally:
         DBHandler.Close()
         logger.info('logger end')
+        logging.shutdown()
+        logFinal()

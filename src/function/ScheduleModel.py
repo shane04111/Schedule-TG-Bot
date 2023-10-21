@@ -85,7 +85,13 @@ def GetIdUserData(GetId, userId, chatId):
     抓取特定id資料
     :return:
     """
-    sql = "SELECT ID, Message, DateTime FROM schedule WHERE ID == ? AND UserID == ? AND ChatID == ?;"
+    sql = """
+    SELECT ID, Message, DateTime 
+    FROM schedule 
+    WHERE ID == ? 
+    AND UserID == ? 
+    AND ChatID == ?;
+    """
     data = [GetId, userId, chatId, ]
     return DBHandler.QueryData(sql, data)
 
@@ -95,7 +101,13 @@ def GetLotId(IdFirst: int, IdLest: int):
         抓取特定區間id資料
         :return:
     """
-    sql = "SELECT ID, Message, DateTime FROM schedule WHERE ID BETWEEN ? AND ?;"
+    sql = """
+    SELECT ID, Message, DateTime 
+    FROM schedule 
+    WHERE ID 
+    BETWEEN ? 
+    AND ?;
+    """
     data = [IdFirst, IdLest, ]
     return DBHandler.QueryData(sql, data)
 

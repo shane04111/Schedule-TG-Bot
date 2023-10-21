@@ -32,13 +32,15 @@ class UserLocal:
         return self
 
     def update(self):
-        update = ", ".join(f"{key} = '{value}'" for key, value in zip(self._setSql, self._data))
+        update = ", ".join(f"{key} = ?" for key in self._setSql)
         sql = f"""
         UPDATE UserLocal
         SET {update}
         WHERE chatID == ?
         """
-        DBHandler.DoSqlData(sql, self._chat)
+        data = self._data + [self._chat]
+        print(data)
+        DBHandler.DoSqlData(sql, data)
 
     def _getLang(self):
         sql = f"""
@@ -82,13 +84,13 @@ class UserLocal:
         FROM UserLocal
         WHERE chatID = ?
         """
-        date = DBHandler.QueryData(sql, (self._chat, ))
+        date = DBHandler.QueryData(sql, (self._chat,))
         if date:
             return True
         else:
             return False
 
-    def initUserLocal(self, language: str = "zh-hant"):
-        sql = ('chatID', 'Language', )
-        data = (self._chat, language, )
+    def initUserLocal(self, language: str = "en"):
+        sql = ('chatID', 'Language',)
+        data = (self._chat, language,)
         DBHandler.insertData('UserLocal', sql, data)

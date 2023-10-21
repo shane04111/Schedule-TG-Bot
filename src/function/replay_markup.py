@@ -21,10 +21,7 @@ def config_check(lang) -> InlineKeyboardMarkup:
             InlineKeyboardButton(lg.get("button.config.true", lang), callback_data='config_true'),
             InlineKeyboardButton(lg.get("button.config.false", lang), callback_data='config_false')
         ],
-        [
-            InlineKeyboardButton(lg.get('button.back', lang), callback_data='config_back'),
-            InlineKeyboardButton(lg.get('button.cancel', lang), callback_data='cancel')
-        ]
+        buttonBackCancelHandler('config_back', lang)
     ])
     return check
 
@@ -45,13 +42,18 @@ def time_chose_data_function(lang) -> InlineKeyboardMarkup:
         [InlineKeyboardButton(
             f"{lg.get('button.set_year', lang, time_date().strftime('%Y'))}", callback_data='only_year')],
         [InlineKeyboardButton(f"{lg.get('button.set_all', lang)}", callback_data='all_set')],
-        [
-            InlineKeyboardButton(lg.get('button.back', lang), callback_data='time_back'),
-            InlineKeyboardButton(lg.get('button.cancel', lang), callback_data='cancel')
-        ]
+        buttonBackCancelHandler('time_back', lang)
     ]
     time_chose = InlineKeyboardMarkup(time_chose_data)
     return time_chose
+
+
+def buttonBackCancelHandler(data: str, lang: str) -> list[InlineKeyboardButton]:
+    BC = [
+        InlineKeyboardButton(lg.get('button.back', lang), callback_data=data),
+        InlineKeyboardButton(lg.get('button.cancel', lang), callback_data='cancel')
+    ]
+    return BC
 
 
 def check_YMD():

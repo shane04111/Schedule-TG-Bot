@@ -2,6 +2,8 @@ import json
 import os
 import re
 
+from telegram import InlineKeyboardMarkup, InlineKeyboardButton
+
 from src.function.UserLocalModel import UserLocal
 
 
@@ -24,22 +26,24 @@ class Language:
         self.lang = [os.path.splitext(file)[0] for file in self._allFile if file.endswith('.json')]
         return self.lang
 
-    def _getDefault(self, translator: str):
+    def _getDefault(self, translator: str | None, inpData: str | None):
         data = _loadLanguage(f"{self._getFile}/zh-hant.json")
-        if translator in data:
-            return data[translator]
-        else:
+        if inpData is not None and translator in data:
+            subData = re.sub(r"%s", inpData, data[translator])
+            return subData
+        if translator not in data:
             return translator
+        return data[translator]
 
-    def get(self, translator: str, toLanguage: str = 'zh-hant', inpData: str = None) -> str:
+    def get(self, translator: str, toLanguage: str | None, inpData: str | None = None) -> str:
         if toLanguage not in self.lang:
-            return self._getDefault(translator)
+            return self._getDefault(translator, inpData)
         data = _loadLanguage(f"{self._getFile}/{toLanguage}.json")
         if inpData is not None and translator in data:
             subData = re.sub(r"%s", inpData, data[translator])
             return subData
         if translator not in data:
-            return self._getDefault(translator)
+            return self._getDefault(translator, inpData)
         return data[translator]
 
     def getDefault(self, local: UserLocal, default: str | None):
@@ -54,3 +58,30 @@ class Language:
             local.initUserLocal(default)
             language = default
             return language
+
+    def button(self, lang) -> InlineKeyboardMarkup:
+        index = 0
+        max_value = len(self.lang) - 1
+        inner_list_length = 5
+        result = []
+        i = 0
+        while index <= max_value:
+            inner_list = []
+            for j in range(inner_list_length):
+                if index > max_value:
+                    break
+                inner_list.append(
+                    InlineKeyboardButton(self._getLangButton(self.lang[index]), callback_data=self.lang[index]))
+                index += 1
+            result.append(inner_list)
+            i += 1
+        markup = InlineKeyboardMarkup(result)
+        return markup
+
+    def _getLangButton(self, lang: str) -> str:
+        data = _loadLanguage(f"{self._getFile}/{lang}.json")
+        if lang not in data:
+            return lang
+        return data[lang]
+
+

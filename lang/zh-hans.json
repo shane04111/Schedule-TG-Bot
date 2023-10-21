@@ -1,11 +1,27 @@
 {
+  "zh-hans": "简体中文",
+  "local.language.done": "已将预设语言切换为简体中文",
+
   "schedule.none.error": "請重新使用命令並在後面加上提醒事項",
-  "schedule.delete.start": "請選取要刪除的提醒訊息",
-  "schedule.redo.start": "請選擇要重新提醒的訊息",
-  "schedule.both.none": "尚未設定提醒",
   "schedule.reminder.check.short": "請確認提醒事項: \n%s",
   "schedule.reminder.check.long": "是否提醒上述事項",
   "schedule.check.time": "請選擇提醒時間",
+  "schedule.set": "當前選擇時間 %s",
+  "schedule.year": "請選擇要幾年提醒",
+  "schedule.month": "%s\n請選擇要幾月提醒",
+  "schedule.day": "%s\n請選擇要幾號提醒",
+  "schedule.hour": "%s\n請選擇要幾點提醒",
+  "schedule.minute": "%s\n請選擇要幾分提醒",
+  "schedule.back": "請選擇提醒時間",
+  "schedule.back.month": "%s\n請選擇要幾年提醒",
+  "schedule.match.year": "當前選擇時間 %s\n請選擇要幾月提醒",
+  "schedule.match.month": "當前選擇時間 %s\n請選擇要幾號提醒",
+  "schedule.done": "已成功安排提醒\n如需設定其他提醒請再次輸入 /schedule",
+  "schedule.cancel": "已取消安排提醒\n如需設定其他提醒請再次輸入 /schedule",
+
+  "both.none": "尚未設定提醒",
+  "redo.start": "請選擇要重新提醒的訊息",
+  "delete.start": "請選取要刪除的提醒訊息",
 
   "button.text.true": "確認",
   "button.text.false": "取消",
@@ -17,6 +33,12 @@
   "button.set_all": "自訂義日期",
   "button.back": "返回上一頁",
   "button.cancel": "取消設定",
+  "button.year": "%s年",
+  "button.month": "%s月",
+  "button.day": "%s號",
+  "button.minute.zero": "整點",
+  "button.minute.one": "0%s分",
+  "button.minute": "%s分",
 
   "id.time": "提醒時間: %s",
   "id.short.reminder": "提醒事項: \n%s",
@@ -47,5 +69,8 @@
   "time.8:00PM": "晚上八點",
   "time.9:00PM": "晚上九點",
   "time.10:00PM": "晚上十點",
-  "time.11:00PM": "晚上十一點"
+  "time.11:00PM": "晚上十一點",
+  "time.minute.zero": "整",
+  "time.minute.one": "0%s分",
+  "time.minute": "%s分"
 }
