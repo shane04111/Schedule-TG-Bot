@@ -9,9 +9,9 @@ from src.function.UserLocalModel import UserLocal
 from src.function.deleteMessage import CreateDeleteButton, CreateRedoButton
 from src.function.loggr import logger
 from src.function.replay_markup import true_false_text
-from src.util import MessageLen, DEV_ID, DEV_array, bot
 from src.local.localTime import Local
 from src.translator.getLang import Language
+from src.util import MessageLen, DEV_ID, DEV_array, bot
 
 lc = Local()
 lg = Language()
@@ -62,7 +62,7 @@ async def MessageHandle(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
         msg = await updateMsg.reply_text(lg.get("local.localtime", language), reply_markup=lc.button())
         DoDataInsert().init(user_id, chat_id, msg.message_id)
     elif text == "/language":
-        msg = await updateMsg.reply_text("local time", reply_markup=lg.button(language))
+        msg = await updateMsg.reply_text("local time", reply_markup=lg.button())
         DoDataInsert().init(user_id, chat_id, msg.message_id)
     elif updateMsg.chat.type == "private":
         await StartSet(update, text, user_id, chat_id, language)
@@ -120,11 +120,11 @@ async def StartSet(update: Update, text, user, chat, lang):
     :return:
     """
     if len(text) <= MessageLen:
-        msg = await update.message.reply_text(f"{lg.get('schedule.reminder.check.short', lang, text)}",
+        msg = await update.message.reply_text(lg.get('schedule.reminder.check.short', lang, text),
                                               reply_markup=true_false_text(lang))
     else:
         await update.message.reply_text(text)
-        msg = await update.message.reply_text(text=lg.get('schedule.reminder.check.long', lang),
+        msg = await update.message.reply_text(lg.get('schedule.reminder.check.long', lang),
                                               reply_markup=true_false_text(lang))
     messageID = msg.message_id
     ScheduleStart(user, chat, messageID, text)
@@ -153,17 +153,15 @@ async def SearchId(update: Update, id_match, chat_id, user_id, lang: str, isDEV:
             return
         item1 = str(item[1])
         if len(item1) <= 1800:
-            formatted_item = (f"{lg.get('id.time', lang, item[2])} |"
-                              f"{lg.get('id.short.reminder', lang, item[1])}")
+            formatted_item = lg.get('id.short.reminder', lang, item[2], item[1])
         else:
-            formatted_item = (f"{lg.get('id.time', lang, item[2])} |"
-                              f"{lg.get('id.long.reminder', lang)}")
+            formatted_item = lg.get('id.long.reminder', lang, item[2])
             long_item = item[1]
     if formatted_item is None:
-        await update.message.reply_text(f"{lg.get('id.none', lang, get_Need_Id)}")
+        await update.message.reply_text(lg.get('id.none', lang, get_Need_Id))
         return
     if long_item is None:
-        await update.message.reply_text(f"{lg.get('id.get', lang, get_Need_Id)}\n{formatted_item}")
+        await update.message.reply_text(lg.get('id.get', lang, get_Need_Id, formatted_item))
     else:
-        await update.message.reply_text(f"{lg.get('id.get', lang, get_Need_Id)}\n{formatted_item}")
+        await update.message.reply_text(lg.get('id.get', lang, get_Need_Id, formatted_item))
         await bot.send_message(chat_id, long_item)

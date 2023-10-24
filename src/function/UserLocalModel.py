@@ -39,7 +39,6 @@ class UserLocal:
         WHERE chatID == ?
         """
         data = self._data + [self._chat]
-        print(data)
         DBHandler.DoSqlData(sql, data)
 
     def _getLang(self):

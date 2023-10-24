@@ -1,6 +1,5 @@
 import json
 import os
-import re
 
 from telegram import InlineKeyboardMarkup, InlineKeyboardButton
 
@@ -26,27 +25,31 @@ class Language:
         self.lang = [os.path.splitext(file)[0] for file in self._allFile if file.endswith('.json')]
         return self.lang
 
-    def _getDefault(self, translator: str | None, inpData: str | None):
+    def _getDefault(self, translator: str | None, inpData: tuple) -> str:
         data = _loadLanguage(f"{self._getFile}/zh-hant.json")
         if inpData is not None and translator in data:
-            subData = re.sub(r"%s", inpData, data[translator])
+            subData = data[translator] % inpData
             return subData
         if translator not in data:
             return translator
         return data[translator]
 
-    def get(self, translator: str, toLanguage: str | None, inpData: str | None = None) -> str:
+    def get(self, translator: str, toLanguage: str | None, *inpData: str) -> str:
         if toLanguage not in self.lang:
             return self._getDefault(translator, inpData)
         data = _loadLanguage(f"{self._getFile}/{toLanguage}.json")
         if inpData is not None and translator in data:
-            subData = re.sub(r"%s", inpData, data[translator])
+            subData = data[translator] % inpData
             return subData
+        if inpData is None:
+            laseData = ()
+        else:
+            laseData = inpData
         if translator not in data:
-            return self._getDefault(translator, inpData)
+            return self._getDefault(translator, laseData)
         return data[translator]
 
-    def getDefault(self, local: UserLocal, default: str | None):
+    def getDefault(self, local: UserLocal, default: str | None) -> str:
         if local.Check:
             language = local.Language
             return language
@@ -59,7 +62,7 @@ class Language:
             language = default
             return language
 
-    def button(self, lang) -> InlineKeyboardMarkup:
+    def button(self) -> InlineKeyboardMarkup:
         index = 0
         max_value = len(self.lang) - 1
         inner_list_length = 5
@@ -83,5 +86,3 @@ class Language:
         if lang not in data:
             return lang
         return data[lang]
-
-

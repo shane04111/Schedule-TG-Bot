@@ -40,11 +40,10 @@
   "button.minute.one": "0%sminute",
   "button.minute": "%sminute",
 
-  "id.time": "reminder time: %s",
-  "id.short.reminder": "Reminder: \n%s",
-  "id.long.reminder": "Reminder: ",
+  "id.short.reminder": "reminder time: %s |Reminder: \n%s",
+  "id.long.reminder": "reminder time: %s |Reminder: ",
   "id.none": "ID %s does not exist",
-  "id.get": "ID %s The information is",
+  "id.get": "ID %s The information is\n%s",
 
   "time.12:00AM":   "AM 12:",
   "time.1:00AM":    "AM 1:",

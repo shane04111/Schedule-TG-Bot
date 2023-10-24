@@ -40,11 +40,10 @@
   "button.minute.one": "0%s分",
   "button.minute": "%s分",
 
-  "id.time": "提醒時間: %s",
-  "id.short.reminder": "提醒事項: \n%s",
-  "id.long.reminder": "提醒事項: ",
+  "id.short.reminder": "提醒時間: %s |提醒事項: \n%s",
+  "id.long.reminder": "提醒時間: %s |提醒事項: ",
   "id.none": "ID %s 不存在",
-  "id.get": "ID %s 的資料是",
+  "id.get": "ID %s 的資料是\n%s",
 
   "time.12:00AM": "半夜十二點",
   "time.1:00AM": "凌晨一點",
