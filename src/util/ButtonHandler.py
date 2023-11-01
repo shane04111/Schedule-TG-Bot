@@ -3,6 +3,7 @@ import re
 import telegram
 from telegram import Update, CallbackQuery, InlineKeyboardMarkup
 from telegram.ext import ContextTypes
+import pyperclip as pc
 
 from src.function import lg
 from src.function.ScheduleModel import ChangeSendTrue, GetUserMessage, GetIdData, SaveData

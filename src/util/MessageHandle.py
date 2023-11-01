@@ -120,12 +120,14 @@ async def StartSet(update: Update, text, user, chat, lang):
     :return:
     """
     if len(text) <= MessageLen:
-        msg = await update.message.reply_text(lg.get('schedule.reminder.check.short', lang, text),
-                                              reply_markup=true_false_text(lang))
+        text1 = '```\n' + text + "```"
+        msg = await update.message.reply_markdown_v2(
+            lg.get('schedule.reminder.check.short', lang, text1),
+            reply_markup=true_false_text(lang))
     else:
-        await update.message.reply_text(text)
-        msg = await update.message.reply_text(lg.get('schedule.reminder.check.long', lang),
-                                              reply_markup=true_false_text(lang))
+        await update.message.reply_markdown_v2(text)
+        msg = await update.message.reply_markdown_v2(lg.get('schedule.reminder.check.long', lang),
+                                                     reply_markup=true_false_text(lang))
     messageID = msg.message_id
     ScheduleStart(user, chat, messageID, text)
 
