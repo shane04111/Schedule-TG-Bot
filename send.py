@@ -4,7 +4,6 @@ from dotenv import load_dotenv
 import os
 import asyncio
 
-DBHandler.sendConnect()
 load_dotenv()
 TOKEN = os.getenv("TOKEN")
 bot = Bot(token=TOKEN)
@@ -25,4 +24,7 @@ async def main():
             print(f"ID: {index[2]} 訊息發送失敗")
             return
 
-asyncio.run(main())  # 使用 asyncio.run 来运行异步代码
+
+if __name__ == "__main__":
+    DBHandler.sendConnect()
+    asyncio.run(main())  # 使用 asyncio.run 来运行异步代码

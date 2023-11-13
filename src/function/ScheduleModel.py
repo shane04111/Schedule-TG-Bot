@@ -1,14 +1,10 @@
 import os
 
-from dotenv import load_dotenv
-
 from src.function.SqlClass import Sql
 from src.function.loggr import logger
 from src.function.my_time import time_datetime
 
-load_dotenv()
-_DB = os.getenv("DB")
-DBHandler = Sql(_DB)
+DBHandler = Sql()
 
 
 def SaveData(Message: str, UserID: int, ChatID: int, Year: int, Month: int, Day: int, Hour: int, Minute: int):

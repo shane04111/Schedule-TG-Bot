@@ -1,10 +1,14 @@
+import os
 import sqlite3
 from src.function.loggr import logger
 
+_FILE = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
+_FILEPATH = f"{_FILE}/data/schedule_data.db"
+
 
 class Sql:
-    def __init__(self, DB):
-        self.DB = DB
+    def __init__(self):
+        self.DB = _FILEPATH
         self._conn = None
         self._cursor = None
 

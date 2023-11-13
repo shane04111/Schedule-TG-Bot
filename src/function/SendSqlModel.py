@@ -1,12 +1,8 @@
 import os
 
-from dotenv import load_dotenv
-
 from src.function.SqlClass import Sql
 
-load_dotenv()
-_DB = os.getenv("DB")
-DBHandler = Sql(_DB)
+DBHandler = Sql()
 
 
 def GetData():
