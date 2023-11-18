@@ -40,13 +40,7 @@ async def MessageHandle(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
     checkCommands = r"(![sS]|/[sS])(chedule)?(@EZMinder_bot)?"
     deleteCommands = r"(![dD]|/[dD])(elete)?(@EZMinder_bot)?"
     redoCommands = r"(![rR]|/[rR])(edo)?(@EZMinder_bot)?"
-    # TODO: user Local language and time
-    if text == "!id" and str(user_id) == DEV_ID:
-        await updateMsg.reply_text(f"{updateMsg.message_id}")
-    elif text == "/default":
-        msg = await updateMsg.reply_text(lg.get("local.group", language))
-        DoDataInsert().init(user_id, chat_id, msg.message_id)
-    elif re.match(checkCommands, text):
+    if re.match(checkCommands, text):
         await SetSchedule(update, checkCommands, text, user_id, chat_id, language)
     elif re.match(deleteCommands, text):
         await DoCommands(update, DelData, "delete.start", CreateDeleteButton(user_id, chat_id),
@@ -58,14 +52,10 @@ async def MessageHandle(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
         await SearchId(update, id_match, chat_id, user_id, language)
     elif id_match:
         await SearchId(update, id_match, chat_id, user_id, language, False)
-    elif text == "/localtime":
-        msg = await updateMsg.reply_text(lg.get("local.localtime", language), reply_markup=lc.button())
-        DoDataInsert().init(user_id, chat_id, msg.message_id)
-    elif text == "/language":
-        msg = await updateMsg.reply_text("local time", reply_markup=lg.button())
-        DoDataInsert().init(user_id, chat_id, msg.message_id)
     elif updateMsg.chat.type == "private":
         await StartSet(update, text, user_id, chat_id, language)
+    else:
+        return
 
 
 async def DoCommands(update: Update, Data, ReplayText, ButtonMark, user_id, chat_id, lang):

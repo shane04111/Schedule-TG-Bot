@@ -12,9 +12,9 @@ def GetData():
     """
     results = DBHandler.QueryData('''
     SELECT Message, ChatID, ID 
-    FROM schedule 
-    WHERE datetime(DateTime) <= datetime('now', 'localtime') 
-    AND Send == 'False';
+    FROM schedule
+    WHERE `DateTime` <= SYSDATE()
+    AND Send = 'False';
     ''')
     return results
 
@@ -25,6 +25,6 @@ def ChangeSendTrue(delID: str):
     :param delID:
     :return:
     """
-    sql = "UPDATE schedule SET Send = 'True' WHERE ID = ?;"
+    sql = "UPDATE schedule SET Send = 'True' WHERE ID = %s;"
     data = [delID]
     DBHandler.DoSqlData(sql, data)

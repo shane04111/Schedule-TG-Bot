@@ -5,7 +5,7 @@ from src.function.my_time import time_datetime
 def ScheduleStart(user, chat, message, text: str = None):
     columns = ('UserID', 'ChatID', 'MessageID', 'Text', 'StartTime')
     data = (user, chat, message, text, time_datetime(),)
-    DBHandler.insertData('UserData', columns, data)
+    DBHandler.insertData('Schedule.UserData', columns, data)
 
 
 class DoDataInsert:
@@ -37,7 +37,7 @@ class DoDataInsert:
     def _doInsert(self):
         columns = tuple(self._setSql)
         data = tuple(self._data)
-        DBHandler.insertData('UserData', columns, data)
+        DBHandler.insertData('Schedule.UserData', columns, data)
 
 
 class UserDataInsert:
@@ -94,9 +94,9 @@ class UserDataInsert:
 
     def insert(self):
         sql = f"""
-        UPDATE UserData
+        UPDATE Schedule.UserData
         SET {self._setData()} 
-        WHERE ID = ?;
+        WHERE ID = %s;
         """
         DBHandler.DoSqlData(sql, (self._databaseID,))
 
@@ -137,10 +137,10 @@ class UserData:
 def CheckUser(user, chat, message):
     sql = """
     SELECT UserID, ChatID, MessageID, Text, Year, Month, Day, Hour, Miner, CheckDone, isToday, isOY, ID
-    FROM UserData
-    WHERE UserID == ?
-    AND ChatID == ?
-    AND MessageID == ?
+    FROM Schedule.UserData
+    WHERE UserID = %s
+    AND ChatID = %s
+    AND MessageID = %s
     """
     data = (user, chat, message)
     result = DBHandler.QueryData(sql, data)

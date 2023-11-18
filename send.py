@@ -28,3 +28,4 @@ async def main():
 if __name__ == "__main__":
     DBHandler.sendConnect()
     asyncio.run(main())  # 使用 asyncio.run 来运行异步代码
+    DBHandler.Close()

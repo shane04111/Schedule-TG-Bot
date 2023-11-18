@@ -32,11 +32,11 @@ class UserLocal:
         return self
 
     def update(self):
-        update = ", ".join(f"{key} = ?" for key in self._setSql)
+        update = ", ".join(f"{key} = %s" for key in self._setSql)
         sql = f"""
-        UPDATE UserLocal
+        UPDATE Schedule.UserLocal
         SET {update}
-        WHERE chatID == ?
+        WHERE chatID = %s
         """
         data = self._data + [self._chat]
         DBHandler.DoSqlData(sql, data)
@@ -44,8 +44,8 @@ class UserLocal:
     def _getLang(self):
         sql = f"""
         SELECT Language
-        FROM UserLocal
-        WHERE chatID = ?
+        FROM Schedule.UserLocal
+        WHERE chatID = %s
         """
         date = DBHandler.QueryData(sql, (self._chat,))
         if date:
@@ -56,8 +56,8 @@ class UserLocal:
     def _getOnly(self):
         sql = f"""
         SELECT OnlyAdmin
-        FROM UserLocal
-        WHERE chatID = ?
+        FROM Schedule.UserLocal
+        WHERE chatID = %s
         """
         date = DBHandler.QueryData(sql, (self._chat,))
         if date:
@@ -68,8 +68,8 @@ class UserLocal:
     def _getLocal(self):
         sql = f"""
         SELECT Localtime
-        FROM UserLocal
-        WHERE chatID = ?
+        FROM Schedule.UserLocal
+        WHERE chatID = %s
         """
         date = DBHandler.QueryData(sql, (self._chat,))
         if date:
@@ -80,8 +80,8 @@ class UserLocal:
     def _check(self):
         sql = """
         SELECT *
-        FROM UserLocal
-        WHERE chatID = ?
+        FROM Schedule.UserLocal
+        WHERE chatID = %s
         """
         date = DBHandler.QueryData(sql, (self._chat,))
         if date:
@@ -92,4 +92,4 @@ class UserLocal:
     def initUserLocal(self, language: str = "en"):
         sql = ('chatID', 'Language',)
         data = (self._chat, language,)
-        DBHandler.insertData('UserLocal', sql, data)
+        DBHandler.insertData('Schedule.UserLocal', sql, data)

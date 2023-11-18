@@ -205,13 +205,13 @@ def FinalSaveData(key):
     UserDataInsert(data.id).done().insert()
     text = data.text
     userID = data.userID
-    chatid = data.chatID
+    chatID = data.chatID
     user_year = data.year
     user_month = data.month
     user_day = data.day
     user_hour = data.hour
     user_minute = data.minute
-    SaveData(text, userID, chatid, "%04d" % user_year, "%02d" % user_month, "%02d" % user_day,
+    SaveData(text, userID, chatID, "%04d" % user_year, "%02d" % user_month, "%02d" % user_day,
              "%02d" % user_hour, "%02d" % user_minute)
 
 
