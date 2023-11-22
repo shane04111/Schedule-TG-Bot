@@ -1,5 +1,6 @@
 {
   "en": "english",
+  "start": "歡迎使用機器人！\n!s 創建一個新的提醒",
   "local.language.done": "Language switched to English",
 
   "schedule.none.error": "Please re-use the command and add a reminder after it",
@@ -18,6 +19,8 @@
   "schedule.match.month": "The current selected time is %s\nPlease select the number of reminders you want",
   "schedule.done": "Reminder has been scheduled successfully\nIf you need to set other reminders, please enter /schedule again",
   "schedule.cancel": "The scheduled reminder has been cancelled\nIf you need to set other reminders, please enter /schedule again",
+  "schedule.show": "%s\n——Page %s of %s Total records: %s pages——",
+  "schedule.show.none": "No reminder set yet",
 
   "both.none": "No reminder set yet",
   "redo.start": "Please select the message you want to be reminded again",

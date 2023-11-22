@@ -14,7 +14,6 @@ from src.util.Commands import commands
 from src.util.MessageHandle import MessageHandle
 
 logger.info('logger start')
-DBHandler.connect()
 load_dotenv()
 TOKEN = os.getenv('TOKEN')
 DEV_ID = os.getenv("DEV")
@@ -34,6 +33,7 @@ def app():
     application.add_handler(CommandHandler("default", command.default))
     application.add_handler(CommandHandler("language", command.language))
     application.add_handler(CommandHandler("loacltime", command.localTime))
+    application.add_handler(CommandHandler("show", command.show))
     application.add_handler(CallbackQueryHandler(ScheduleButton))
     application.add_handler(MessageHandler(filters.TEXT, MessageHandle))
 
@@ -66,7 +66,6 @@ if __name__ == "__main__":
     except:
         logger.error('其他錯誤: ', exc_info=True)
     finally:
-        DBHandler.Close()
         logger.info('logger end')
         logging.shutdown()
         logFinal()

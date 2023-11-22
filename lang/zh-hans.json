@@ -1,5 +1,6 @@
 {
   "zh-hans": "简体中文",
+  "start": "歡迎使用機器人！\n!s 創建一個新的提醒",
   "local.language.done": "已将预设语言切换为简体中文",
 
   "schedule.none.error": "請重新使用命令並在後面加上提醒事項",
@@ -18,6 +19,8 @@
   "schedule.match.month": "當前選擇時間 %s\n請選擇要幾號提醒",
   "schedule.done": "已成功安排提醒\n如需設定其他提醒請再次輸入 /schedule",
   "schedule.cancel": "已取消安排提醒\n如需設定其他提醒請再次輸入 /schedule",
+  "schedule.show": "%s\n——第%s頁 有%s筆資料 共%s頁——",
+  "schedule.show.none": "尚未設定提醒",
 
   "both.none": "尚未設定提醒",
   "redo.start": "請選擇要重新提醒的訊息",

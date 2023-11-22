@@ -20,7 +20,7 @@ class Language:
         self._allFile = []
         self._getAll()
 
-    def _getAll(self):
+    def _getAll(self) -> list[str, ...]:
         self._allFile = os.listdir(f"{self._getFile}")
         self.lang = [os.path.splitext(file)[0] for file in self._allFile if file.endswith('.json')]
         return self.lang

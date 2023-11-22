@@ -1,20 +1,22 @@
 import re
+from datetime import datetime
 
-from telegram import Update
+from telegram import Update, InlineKeyboardMarkup
 from telegram.ext import ContextTypes
 
-from src.function.ScheduleModel import GetUserMessage, GetUserDoneMessage, GetIdData, GetIdUserData
+from src.function.ScheduleModel import sqlModel
 from src.function.UserDataModel import ScheduleStart, DoDataInsert
 from src.function.UserLocalModel import UserLocal
 from src.function.deleteMessage import CreateDeleteButton, CreateRedoButton
 from src.function.loggr import logger
-from src.function.replay_markup import true_false_text
+from src.function.replay_markup import true_false_text, MarkUp
 from src.local.localTime import Local
 from src.translator.getLang import Language
-from src.util import MessageLen, DEV_ID, DEV_array, bot
+from src.util import MessageLen, DEV_array, bot
 
 lc = Local()
 lg = Language()
+sql = sqlModel()
 
 
 async def MessageHandle(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -34,8 +36,6 @@ async def MessageHandle(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
         text = updateMsg.text
     else:
         logger.warning(f"消息為空或無文本內容, user:{user_id}, chat:{chat_id}", exc_info=True)
-    DelData = GetUserMessage(user_id, chat_id)
-    RedoData = GetUserDoneMessage(user_id, chat_id)
     id_match = re.search(r'/(\d+)([iI][dD])', text)
     checkCommands = r"(![sS]|/[sS])(chedule)?(@EZMinder_bot)?"
     deleteCommands = r"(![dD]|/[dD])(elete)?(@EZMinder_bot)?"
@@ -43,9 +43,11 @@ async def MessageHandle(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
     if re.match(checkCommands, text):
         await SetSchedule(update, checkCommands, text, user_id, chat_id, language)
     elif re.match(deleteCommands, text):
+        DelData = sql.GetUserMessage(user_id, chat_id)
         await DoCommands(update, DelData, "delete.start", CreateDeleteButton(user_id, chat_id),
                          user_id, chat_id, language)
     elif re.match(redoCommands, text):
+        RedoData = sql.GetUserDoneMessage(user_id, chat_id)
         await DoCommands(update, RedoData, "redo.start", CreateRedoButton(user_id, chat_id),
                          user_id, chat_id, language)
     elif id_match and str(user_id) in DEV_array:
@@ -58,7 +60,13 @@ async def MessageHandle(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
         return
 
 
-async def DoCommands(update: Update, Data, ReplayText, ButtonMark, user_id, chat_id, lang):
+async def DoCommands(update: Update,
+                     Data: list[tuple[int, str, datetime]],
+                     ReplayText: str,
+                     ButtonMark: InlineKeyboardMarkup,
+                     user_id: int,
+                     chat_id: int,
+                     lang: str) -> None:
     """
     回復傳入訊息並根據傳入資料建立訊息之按鈕
     :param update:
@@ -81,7 +89,12 @@ async def DoCommands(update: Update, Data, ReplayText, ButtonMark, user_id, chat
         await update.message.reply_text(lg.get("both.none", lang))
 
 
-async def SetSchedule(update: Update, checkCommands, text, user_id, chat_id, lang):
+async def SetSchedule(update: Update,
+                      checkCommands: str,
+                      text: str,
+                      user_id: int,
+                      chat_id: int,
+                      lang: str) -> None:
     """
     設定提醒事項
     :param update:
@@ -99,7 +112,11 @@ async def SetSchedule(update: Update, checkCommands, text, user_id, chat_id, lan
         await StartSet(update, clear_text, user_id, chat_id, lang)
 
 
-async def StartSet(update: Update, text, user, chat, lang):
+async def StartSet(update: Update,
+                   text: str,
+                   user: int,
+                   chat: int,
+                   lang: str) -> None:
     """
     判斷是否過長並給出相對的詢問
     :param update:
@@ -109,20 +126,26 @@ async def StartSet(update: Update, text, user, chat, lang):
     :param lang: 翻譯語言
     :return:
     """
+    mark = MarkUp(lang)
     if len(text) <= MessageLen:
         text1 = '```\n' + text + "```"
         msg = await update.message.reply_markdown_v2(
             lg.get('schedule.reminder.check.short', lang, text1),
-            reply_markup=true_false_text(lang))
+            reply_markup=mark.firstCheck())
     else:
         await update.message.reply_markdown_v2(text)
         msg = await update.message.reply_markdown_v2(lg.get('schedule.reminder.check.long', lang),
-                                                     reply_markup=true_false_text(lang))
+                                                     reply_markup=mark.firstCheck())
     messageID = msg.message_id
     ScheduleStart(user, chat, messageID, text)
 
 
-async def SearchId(update: Update, id_match, chat_id, user_id, lang: str, isDEV: bool = True):
+async def SearchId(update: Update,
+                   id_match: re.Match,
+                   chat_id: int,
+                   user_id: int,
+                   lang: str,
+                   isDEV: bool = True) -> None:
     """
     尋找特定id訊息，並將提醒內容傳給使用者
     :param update:
@@ -137,9 +160,9 @@ async def SearchId(update: Update, id_match, chat_id, user_id, lang: str, isDEV:
     formatted_item = None
     long_item = None
     if isDEV:
-        data = GetIdData(get_Need_Id)
+        data = sql.GetIdData(get_Need_Id)
     else:
-        data = GetIdUserData(get_Need_Id, user_id, chat_id)
+        data = sql.GetIdUserData(get_Need_Id, user_id, chat_id)
     for item in data:
         if not item:
             return

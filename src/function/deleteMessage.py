@@ -1,14 +1,16 @@
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup
-from src.function.ScheduleModel import GetUserMessage, GetUserDoneMessage
+from src.function.ScheduleModel import sqlModel
+
+sql = sqlModel()
 
 
 def CreateDeleteButton(user, chat):
-    data = GetUserMessage(user, chat)
+    data = sql.GetUserMessage(user, chat)
     return CreateButton(data, 'del')
 
 
 def CreateRedoButton(user, chat):
-    data = GetUserDoneMessage(user, chat)
+    data = sql.GetUserDoneMessage(user, chat)
     return CreateButton(data, 'redo')
 
 

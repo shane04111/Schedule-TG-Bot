@@ -23,7 +23,7 @@ class DoDataInsert:
         self._data.append('True')
         return self
 
-    def init(self, user, chat, message):
+    def init(self, user: int, chat: int, message: int):
         self._setSql.append('UserID')
         self._data.append(user)
         self._setSql.append('ChatID')
