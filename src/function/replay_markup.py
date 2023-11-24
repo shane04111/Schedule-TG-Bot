@@ -135,13 +135,26 @@ class DateResult:
         self.is_valid = is_valid
 
 
-class showButton:
-    def __init__(self, page: int, user: int, chat: int):
+class ShowButton:
+    def __init__(self, page: int, user: int, chat: int, isAll: bool, lang: str):
+        self._isAll = isAll
         self._page = page
-        self.number = sql.showNumber(user, chat)[0][0]
-        self.final = math.ceil(self.number / 10)
         self._replyText = ''
         self._check = f"{user}-{chat}-"
+        self._user = user
+        self._chat = chat
+        self.lang = lang
+        self._init()
+
+    def _init(self):
+        if self._isAll:
+            self.number = sql.showAllNumber()[0][0]
+            self.allText = 'all'
+        else:
+            self.number = sql.showNumber(self._user, self._chat)[0][0]
+            self.allText = ''
+        self.final = math.ceil(self.number / 10)
+        return self
 
     def showMark(self) -> InlineKeyboardMarkup:
         """
@@ -170,9 +183,9 @@ class showButton:
     def _lestMark(self) -> InlineKeyboardMarkup:
         mark = InlineKeyboardMarkup([
             [
-                InlineKeyboardButton('<<', callback_data=f'{self._check}nextPage{1}'),
-                InlineKeyboardButton('<', callback_data=f'{self._check}nextPage{self._page - 1}'),
-                InlineKeyboardButton('↻', callback_data=f'{self._check}return{self._page}'),
+                InlineKeyboardButton('<<', callback_data=f'{self._check}{self.allText}nextPage{1}'),
+                InlineKeyboardButton('<', callback_data=f'{self._check}{self.allText}nextPage{self._page - 1}'),
+                InlineKeyboardButton('↻', callback_data=f'{self._check}{self.allText}return{self._page}'),
                 InlineKeyboardButton(' ', callback_data='empty'),
                 InlineKeyboardButton(' ', callback_data='empty')
             ]
@@ -184,9 +197,9 @@ class showButton:
             [
                 InlineKeyboardButton(' ', callback_data='empty'),
                 InlineKeyboardButton(' ', callback_data='empty'),
-                InlineKeyboardButton('↻', callback_data=f'{self._check}return{self._page}'),
-                InlineKeyboardButton('>', callback_data=f'{self._check}nextPage{2}'),
-                InlineKeyboardButton('>>', callback_data=f'{self._check}nextPage{self.final}')
+                InlineKeyboardButton('↻', callback_data=f'{self._check}{self.allText}return{self._page}'),
+                InlineKeyboardButton('>', callback_data=f'{self._check}{self.allText}nextPage{2}'),
+                InlineKeyboardButton('>>', callback_data=f'{self._check}{self.allText}nextPage{self.final}')
             ]
         ])
         return mark
@@ -194,11 +207,11 @@ class showButton:
     def _middleMark(self) -> InlineKeyboardMarkup:
         mark = InlineKeyboardMarkup([
             [
-                InlineKeyboardButton('<<', callback_data=f'{self._check}nextPage{1}'),
-                InlineKeyboardButton('<', callback_data=f'{self._check}nextPage{self._page - 1}'),
-                InlineKeyboardButton('↻', callback_data=f'{self._check}return{self._page}'),
-                InlineKeyboardButton('>', callback_data=f'{self._check}nextPage{self._page + 1}'),
-                InlineKeyboardButton('>>', callback_data=f'{self._check}nextPage{self.final}')
+                InlineKeyboardButton('<<', callback_data=f'{self._check}{self.allText}nextPage{1}'),
+                InlineKeyboardButton('<', callback_data=f'{self._check}{self.allText}nextPage{self._page - 1}'),
+                InlineKeyboardButton('↻', callback_data=f'{self._check}{self.allText}return{self._page}'),
+                InlineKeyboardButton('>', callback_data=f'{self._check}{self.allText}nextPage{self._page + 1}'),
+                InlineKeyboardButton('>>', callback_data=f'{self._check}{self.allText}nextPage{self.final}')
             ]
         ])
         return mark
@@ -208,7 +221,7 @@ class showButton:
             [
                 InlineKeyboardButton(' ', callback_data=f'empty'),
                 InlineKeyboardButton(' ', callback_data=f'empty'),
-                InlineKeyboardButton('↻', callback_data=f'{self._check}return{self._page}'),
+                InlineKeyboardButton('↻', callback_data=f'{self._check}{self.allText}return{self._page}'),
                 InlineKeyboardButton(' ', callback_data=f'empty'),
                 InlineKeyboardButton(' ', callback_data=f'empty')
             ]
@@ -221,6 +234,6 @@ class showButton:
             return 'error'
         for index in data:
             text = str(index[1]).replace("\n", " ")[:lest]
-            doc = f"{text}{'...' if len(index[1]) > lest else ''}"
-            self._replyText += f"/{index[0]}id\n提醒內容: {doc.ljust(lest + 5)}\n\n"
+            doc = f"{text}{'...' if len(index[1]) > lest else ''}".ljust(lest + 5)
+            self._replyText += lg.get('schedule.show.index', self.lang, index[0], doc)
         return self._replyText

@@ -7,7 +7,6 @@ from sqlite3 import Error
 from telegram import Bot, Update
 from telegram.ext import ApplicationBuilder, CommandHandler, CallbackQueryHandler, MessageHandler, filters
 
-from src.function.ScheduleModel import DBHandler
 from src.function.loggr import logger, logFinal
 from src.util.ButtonHandler import ScheduleButton
 from src.util.Commands import commands
@@ -34,6 +33,7 @@ def app():
     application.add_handler(CommandHandler("language", command.language))
     application.add_handler(CommandHandler("loacltime", command.localTime))
     application.add_handler(CommandHandler("show", command.show))
+    application.add_handler(CommandHandler("showall", command.showAll))
     application.add_handler(CallbackQueryHandler(ScheduleButton))
     application.add_handler(MessageHandler(filters.TEXT, MessageHandle))
 

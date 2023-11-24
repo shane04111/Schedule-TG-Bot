@@ -2,9 +2,9 @@ from src.function.ScheduleModel import DBHandler
 from src.function.my_time import time_datetime
 
 
-def ScheduleStart(user, chat, message, text: str = None):
-    columns = ('UserID', 'ChatID', 'MessageID', 'Text', 'StartTime')
-    data = (user, chat, message, text, time_datetime(),)
+def ScheduleStart(user: int, chat: int, message: int, userMessage: int, text: str = None):
+    columns = ('UserID', 'ChatID', 'MessageID', 'UserMessageID', 'Text', 'StartTime')
+    data = (user, chat, message, userMessage, text, time_datetime(),)
     DBHandler.insertData('Schedule.UserData', columns, data)
 
 
@@ -23,13 +23,15 @@ class DoDataInsert:
         self._data.append('True')
         return self
 
-    def init(self, user: int, chat: int, message: int):
+    def init(self, user: int, chat: int, message: int, userMessage: int):
         self._setSql.append('UserID')
         self._data.append(user)
         self._setSql.append('ChatID')
         self._data.append(chat)
         self._setSql.append('MessageID')
         self._data.append(message)
+        self._setSql.append('UserMessageID')
+        self._data.append(userMessage)
         self._setSql.append('StartTime')
         self._data.append(time_datetime())
         self._doInsert()
@@ -106,6 +108,7 @@ class UserData:
                  UserID: int = None,
                  ChatID: int = None,
                  MessageID: int = None,
+                 UserMessageID: int = None,
                  text: str = None,
                  year: int = None,
                  month: int = None,
@@ -132,11 +135,12 @@ class UserData:
         self.onlyYear = isOY
         self.checkDone = check
         self.checkUser = User
+        self.userMessageID = UserMessageID
 
 
 def CheckUser(user, chat, message):
     sql = """
-    SELECT UserID, ChatID, MessageID, Text, Year, Month, Day, Hour, Miner, CheckDone, isToday, isOY, ID
+    SELECT UserID, ChatID, MessageID, Text, Year, Month, Day, Hour, Miner, CheckDone, isToday, isOY, ID, UserMessageID
     FROM Schedule.UserData
     WHERE UserID = %s
     AND ChatID = %s
@@ -144,23 +148,23 @@ def CheckUser(user, chat, message):
     """
     data = (user, chat, message)
     result = DBHandler.QueryData(sql, data)
-    if result:
-        isUser = True
-        UserID = int(result[0][0])
-        ChatID = int(result[0][1])
-        MessageID = int(result[0][2])
-        Text = str(result[0][3])
-        Year = int(result[0][4])
-        Month = int(result[0][5])
-        Day = int(result[0][6])
-        Hour = int(result[0][7])
-        Minute = int(result[0][8])
-        Check = eval(result[0][9])
-        isToday = eval(result[0][10])
-        isOY = eval(result[0][11])
-        databaseID = int(result[0][12])
-        return UserData(UserID, ChatID, MessageID, Text,
-                        Year, Month, Day, Hour, Minute,
-                        Check, isToday, isOY, isUser, databaseID)
-    else:
+    if not result:
         return UserData(User=False)
+    isUser = True
+    UserID = int(result[0][0])
+    ChatID = int(result[0][1])
+    MessageID = int(result[0][2])
+    Text = str(result[0][3])
+    Year = int(result[0][4])
+    Month = int(result[0][5])
+    Day = int(result[0][6])
+    Hour = int(result[0][7])
+    Minute = int(result[0][8])
+    Check = eval(result[0][9])
+    isToday = eval(result[0][10])
+    isOY = eval(result[0][11])
+    databaseID = int(result[0][12])
+    UserMessageID = int(result[0][13])
+    return UserData(UserID, ChatID, MessageID, UserMessageID, Text,
+                    Year, Month, Day, Hour, Minute,
+                    Check, isToday, isOY, isUser, databaseID)

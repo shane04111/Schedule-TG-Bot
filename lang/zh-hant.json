@@ -21,6 +21,7 @@
   "schedule.cancel": "已取消安排提醒\n如需設定其他提醒請再次輸入 /schedule",
   "schedule.show": "%s\n——第%s頁 有%s筆資料 共%s頁——",
   "schedule.show.none": "尚未設定提醒",
+  "schedule.show.index": "/%sid\n提醒內容: %s \n\n",
 
   "both.none": "尚未設定提醒",
   "redo.start": "請選擇要重新提醒的訊息",

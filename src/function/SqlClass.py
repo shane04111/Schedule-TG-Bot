@@ -1,4 +1,6 @@
 import os
+from datetime import datetime
+
 import mysql.connector
 from dotenv import load_dotenv
 
@@ -9,12 +11,10 @@ load_dotenv()
 
 class Sql:
     def __init__(self):
-        self._DB = os.getenv('DB')
+        self._DB = os.getenv('DATABASE')
         self._host = os.getenv('HOST')
-        self._DatabaseUser = os.getenv('DatabaseUser')
+        self._DatabaseUser = os.getenv('DATABASE_USER')
         self._password = os.getenv('PASSWORD')
-        self._conn = None
-        self._cursor = None
 
     def QueryData(self, sql: str, data: tuple | list | None = None) -> list[tuple]:
         try:

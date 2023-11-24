@@ -50,8 +50,8 @@ async def ScheduleButton(update: Update, context: ContextTypes.DEFAULT_TYPE):
     min_match = re.search(r'(\d+)min', query.data)
     delete_match = re.search(r'(\d+)del', query.data)
     redo_match = re.search(r'(\d+)redo', query.data)
-    pageMatch = re.search(r'(\d+)-*(\d+)-nextPage(\d+)', query.data)
-    returnMatch = re.search(r'(\d+)-*(\d+)-return(\d+)', query.data)
+    pageMatch = re.search(r'(\d+)-*(\d+)-(all)?nextPage(\d+)', query.data)
+    returnMatch = re.search(r'(\d+)-*(\d+)-(all)?return(\d+)', query.data)
     await query.answer()
     if not userData.checkUser:
         return
@@ -180,15 +180,9 @@ async def ScheduleButton(update: Update, context: ContextTypes.DEFAULT_TYPE):
         local.language(query.data).update()
         await EditMessage(query, lg.get("local.language.done", query.data))
     elif pageMatch:
-        page = int(pageMatch.group(3))
-        button = showButton(page, query_user_id, query_chat_id)
-        data = sql.showData(query_user_id, query_chat_id, (page - 1) * 10)
-        await _showMessage(query, page, button, data, language)
+        await _showMessage(query, pageMatch, query_user_id, query_chat_id, language)
     elif returnMatch:
-        page = int(returnMatch.group(3))
-        button = showButton(page, query_user_id, query_chat_id)
-        data = sql.showData(query_user_id, query_chat_id, (page - 1) * 10)
-        await _showMessage(query, page, button, data, language)
+        await _showMessage(query, returnMatch, query_user_id, query_chat_id, language)
     elif query.data == 'empty':
         return
     else:
@@ -196,7 +190,10 @@ async def ScheduleButton(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
 
 
-async def EditMessage(query: CallbackQuery, editMessage: str, mark: InlineKeyboardMarkup | None = None) -> None:
+async def EditMessage(query: CallbackQuery,
+                      editMessage: str,
+                      mark: InlineKeyboardMarkup | None = None
+                      ) -> None:
     """
     抓取編輯訊息錯誤, 以避免使用者點及兩次按鈕
     :param query:
@@ -211,12 +208,25 @@ async def EditMessage(query: CallbackQuery, editMessage: str, mark: InlineKeyboa
         return
 
 
-async def _showMessage(query: CallbackQuery, page: int, button: showButton,
-                       data: list[tuple[int, str, datetime]], language: str) -> None:
-    await EditMessage(query,
-                      lg.get('schedule.show', language, button.showContext(data),
-                             str(page), str(button.number), str(button.final)),
-                      button.showMark())
+async def _showMessage(query: CallbackQuery,
+                       reInput: re.Match,
+                       user: int,
+                       chat: int,
+                       language: str) -> None:
+    page = int(reInput.group(4))
+    isAll = reInput.group(3)
+    logger.debug(f"{isAll},{type(isAll)}")
+    button = showButton(page, user, chat, isAll, language)
+    if isAll:
+        data = sql.showAllData((page - 1) * 10)
+    else:
+        data = sql.showData(user, chat, (page - 1) * 10)
+    finalText = lg.get('schedule.show', language, button.showContext(data),
+                       str(page), str(button.number), str(button.final))
+    text = query.message.text
+    if text == finalText:
+        return
+    await EditMessage(query, finalText, button.showMark())
 
 
 def FinalSaveData(key: dict) -> None:

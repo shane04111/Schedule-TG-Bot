@@ -1,3 +1,6 @@
+from datetime import datetime
+from typing import List, Tuple
+
 from src.function.SqlClass import Sql
 from src.function.my_time import time_datetime
 
@@ -40,8 +43,8 @@ class sqlModel:
         :return:
         """
         self.db.insertData(
-            'Schedule.Error', ('Message', 'UserID', 'ChatID', 'DateTime', 'UserTime'),
-            (Message, UserID, ChatID, time_datetime(), time_datetime()))
+            'Schedule.Error', ('Message', 'UserID', 'ChatID'),
+            (Message, UserID, ChatID))
 
     def showNumber(self, userId: int, chatId: int) -> list[tuple[int]]:
         sql = """
@@ -52,6 +55,13 @@ class sqlModel:
         """
         data = (userId, chatId,)
         return self.db.QueryData(sql, data)
+
+    def showAllNumber(self) -> list[tuple[int]]:
+        sql = """
+        SELECT COUNT(*) as record_count
+        FROM Schedule.schedule;
+        """
+        return self.db.QueryData(sql)
 
     def ChangeSendTrue(self, delID: str) -> None:
         """
@@ -75,7 +85,8 @@ class sqlModel:
         FROM Schedule.schedule 
         WHERE Send = 'False' 
         AND UserID = %s 
-        AND ChatID = %s;
+        AND ChatID = %s
+        ORDER BY ID DESC;
         """
         data = (userId, chatID,)
         return self.db.QueryData(sql, data)
@@ -152,4 +163,14 @@ class sqlModel:
         LIMIT 10 OFFSET %s;
         """
         data = (userId, chatID, number,)
+        return self.db.QueryData(sql, data)
+
+    def showAllData(self, number: int) -> list[tuple]:
+        sql = """
+        SELECT ID, Message, DateTime 
+        FROM Schedule.schedule 
+        ORDER BY ID
+        LIMIT 10 OFFSET %s;
+        """
+        data = (number, )
         return self.db.QueryData(sql, data)

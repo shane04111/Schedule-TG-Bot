@@ -3,7 +3,7 @@ import os
 from dotenv import load_dotenv
 from telegram import Bot
 
-MessageLen = 4000
+MessageLen = 3500
 load_dotenv()
 TOKEN = os.getenv('TOKEN')
 DEV_ID = os.getenv('DEV')

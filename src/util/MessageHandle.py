@@ -9,7 +9,7 @@ from src.function.UserDataModel import ScheduleStart, DoDataInsert
 from src.function.UserLocalModel import UserLocal
 from src.function.deleteMessage import CreateDeleteButton, CreateRedoButton
 from src.function.loggr import logger
-from src.function.replay_markup import true_false_text, MarkUp
+from src.function.replay_markup import MarkUp
 from src.local.localTime import Local
 from src.translator.getLang import Language
 from src.util import MessageLen, DEV_array, bot
@@ -79,12 +79,13 @@ async def DoCommands(update: Update,
     :return:
     """
     if Data:
+        userMsg = update.message.message_id
         msg = await update.message.reply_text(lg.get(ReplayText, lang), reply_markup=ButtonMark)
         msgID = msg.message_id
         if ReplayText == 'delete.start':
-            DoDataInsert().Del().init(user_id, chat_id, msgID)
+            DoDataInsert().Del().init(user_id, chat_id, msgID, userMsg)
         else:
-            DoDataInsert().Redo().init(user_id, user_id, msgID)
+            DoDataInsert().Redo().init(user_id, user_id, msgID, userMsg)
     else:
         await update.message.reply_text(lg.get("both.none", lang))
 
@@ -127,8 +128,10 @@ async def StartSet(update: Update,
     :return:
     """
     mark = MarkUp(lang)
+    logger.debug(len(text))
+    userMessage = update.message.message_id
     if len(text) <= MessageLen:
-        text1 = '```\n' + text + "```"
+        text1 = f'```\n{text}```'
         msg = await update.message.reply_markdown_v2(
             lg.get('schedule.reminder.check.short', lang, text1),
             reply_markup=mark.firstCheck())
@@ -137,7 +140,7 @@ async def StartSet(update: Update,
         msg = await update.message.reply_markdown_v2(lg.get('schedule.reminder.check.long', lang),
                                                      reply_markup=mark.firstCheck())
     messageID = msg.message_id
-    ScheduleStart(user, chat, messageID, text)
+    ScheduleStart(user, chat, messageID, userMessage, text)
 
 
 async def SearchId(update: Update,
@@ -156,7 +159,7 @@ async def SearchId(update: Update,
     :param isDEV: 檢查是否為開發人員
     :return:
     """
-    get_Need_Id = str(id_match.group(1))
+    get_Need_Id = id_match.group(1)
     formatted_item = None
     long_item = None
     if isDEV:
@@ -167,7 +170,7 @@ async def SearchId(update: Update,
         if not item:
             return
         item1 = str(item[1])
-        if len(item1) <= 1800:
+        if len(item1) <= MessageLen:
             formatted_item = lg.get('id.short.reminder', lang, item[2], item[1])
         else:
             formatted_item = lg.get('id.long.reminder', lang, item[2])

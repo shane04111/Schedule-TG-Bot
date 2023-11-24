@@ -21,6 +21,7 @@
   "schedule.cancel": "The scheduled reminder has been cancelled\nIf you need to set other reminders, please enter /schedule again",
   "schedule.show": "%s\n——Page %s of %s Total records: %s pages——",
   "schedule.show.none": "No reminder set yet",
+  "schedule.show.index": "/%sid\nReminder: %s\n\n",
 
   "both.none": "No reminder set yet",
   "redo.start": "Please select the message you want to be reminded again",
