@@ -4,8 +4,8 @@ from datetime import datetime
 from telegram import Update, InlineKeyboardMarkup
 from telegram.ext import ContextTypes
 
-from src.function.ScheduleModel import sqlModel
-from src.function.UserDataModel import ScheduleStart, DoDataInsert
+from src.function.ScheduleModel import SqlModel
+from src.function.UserDataModel import start
 from src.function.UserLocalModel import UserLocal
 from src.function.deleteMessage import CreateDeleteButton, CreateRedoButton
 from src.function.loggr import logger
@@ -16,7 +16,7 @@ from src.util import MessageLen, DEV_array, bot
 
 lc = Local()
 lg = Language()
-sql = sqlModel()
+sql = SqlModel()
 
 
 async def MessageHandle(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -26,36 +26,39 @@ async def MessageHandle(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
     :param context:
     :return:
     """
+    context.bot_data.keys()
     text = None
-    updateMsg = update.message
-    user_id = updateMsg.from_user.id
-    chat_id = updateMsg.chat.id
+    update_msg = update.message
+    if not update_msg:
+        return
+    user_id = update_msg.from_user.id
+    chat_id = update_msg.chat.id
     local = UserLocal(chat_id)
-    language = lg.getDefault(local, updateMsg.from_user.language_code)
-    if updateMsg and updateMsg.text:
-        text = updateMsg.text
+    language = lg.getDefault(local, update_msg.from_user.language_code)
+    if update_msg and update_msg.text:
+        text = update_msg.text
     else:
         logger.warning(f"消息為空或無文本內容, user:{user_id}, chat:{chat_id}", exc_info=True)
     id_match = re.search(r'/(\d+)([iI][dD])', text)
-    checkCommands = r"(![sS]|/[sS])(chedule)?(@EZMinder_bot)?"
-    deleteCommands = r"(![dD]|/[dD])(elete)?(@EZMinder_bot)?"
-    redoCommands = r"(![rR]|/[rR])(edo)?(@EZMinder_bot)?"
-    if re.match(checkCommands, text):
-        await SetSchedule(update, checkCommands, text, user_id, chat_id, language)
-    elif re.match(deleteCommands, text):
-        DelData = sql.GetUserMessage(user_id, chat_id)
-        await DoCommands(update, DelData, "delete.start", CreateDeleteButton(user_id, chat_id),
+    check_commands = r"(![sS]|/[sS])(chedule)?(@EZMinder_bot)?"
+    delete_commands = r"(![dD]|/[dD])(elete)?(@EZMinder_bot)?"
+    redo_commands = r"(![rR]|/[rR])(edo)?(@EZMinder_bot)?"
+    if re.match(check_commands, text):
+        await _SetSchedule(update, check_commands, text, user_id, chat_id, language)
+    elif re.match(delete_commands, text):
+        del_data = sql.GetUserMessage(user_id, chat_id)
+        await DoCommands(update, del_data, "delete.start", CreateDeleteButton(user_id, chat_id),
                          user_id, chat_id, language)
-    elif re.match(redoCommands, text):
-        RedoData = sql.GetUserDoneMessage(user_id, chat_id)
-        await DoCommands(update, RedoData, "redo.start", CreateRedoButton(user_id, chat_id),
+    elif re.match(redo_commands, text):
+        redo_data = sql.GetUserDoneMessage(user_id, chat_id)
+        await DoCommands(update, redo_data, "redo.start", CreateRedoButton(user_id, chat_id),
                          user_id, chat_id, language)
     elif id_match and str(user_id) in DEV_array:
-        await SearchId(update, id_match, chat_id, user_id, language)
+        await searchId(update, id_match, chat_id, user_id, language)
     elif id_match:
-        await SearchId(update, id_match, chat_id, user_id, language, False)
-    elif updateMsg.chat.type == "private":
-        await StartSet(update, text, user_id, chat_id, language)
+        await searchId(update, id_match, chat_id, user_id, language, False)
+    elif update_msg.chat.type == "private":
+        await startSet(update_msg, text, user_id, chat_id, language)
     else:
         return
 
@@ -79,23 +82,21 @@ async def DoCommands(update: Update,
     :return:
     """
     if Data:
-        userMsg = update.message.message_id
+        text = update.message.text
+        user_msg = update.message.message_id
         msg = await update.message.reply_text(lg.get(ReplayText, lang), reply_markup=ButtonMark)
-        msgID = msg.message_id
-        if ReplayText == 'delete.start':
-            DoDataInsert().Del().init(user_id, chat_id, msgID, userMsg)
-        else:
-            DoDataInsert().Redo().init(user_id, user_id, msgID, userMsg)
+        msg_id = msg.message_id
+        start(user_id, chat_id, msg_id, user_msg, text)
     else:
         await update.message.reply_text(lg.get("both.none", lang))
 
 
-async def SetSchedule(update: Update,
-                      checkCommands: str,
-                      text: str,
-                      user_id: int,
-                      chat_id: int,
-                      lang: str) -> None:
+async def _SetSchedule(update: Update,
+                       checkCommands: str,
+                       text: str,
+                       user_id: int,
+                       chat_id: int,
+                       lang: str) -> None:
     """
     設定提醒事項
     :param update:
@@ -108,12 +109,14 @@ async def SetSchedule(update: Update,
     """
     clear_text = re.sub(checkCommands, "", text).strip()
     if clear_text == "":
-        await update.message.reply_text(lg.get("schedule.none.error", lang))
-    else:
-        await StartSet(update, clear_text, user_id, chat_id, lang)
+        user_message = update.message.message_id
+        msg = await update.message.reply_text(lg.get("schedule.none.error", lang))
+        start(user_id, chat_id, msg.message_id, user_message)
+        return
+    await startSet(update.message, clear_text, user_id, chat_id, lang)
 
 
-async def StartSet(update: Update,
+async def startSet(update,
                    text: str,
                    user: int,
                    chat: int,
@@ -129,21 +132,21 @@ async def StartSet(update: Update,
     """
     mark = MarkUp(lang)
     logger.debug(len(text))
-    userMessage = update.message.message_id
+    user_message = update.message_id
     if len(text) <= MessageLen:
         text1 = f'```\n{text}```'
-        msg = await update.message.reply_markdown_v2(
+        msg = await update.reply_markdown_v2(
             lg.get('schedule.reminder.check.short', lang, text1),
             reply_markup=mark.firstCheck())
     else:
-        await update.message.reply_markdown_v2(text)
-        msg = await update.message.reply_markdown_v2(lg.get('schedule.reminder.check.long', lang),
-                                                     reply_markup=mark.firstCheck())
-    messageID = msg.message_id
-    ScheduleStart(user, chat, messageID, userMessage, text)
+        await update.replay_text(text)
+        msg = await update.edited_message.reply_markdown_v2(lg.get('schedule.reminder.check.long', lang),
+                                                            reply_markup=mark.firstCheck())
+    message_id = msg.message_id
+    start(user, chat, message_id, user_message, text)
 
 
-async def SearchId(update: Update,
+async def searchId(update: Update,
                    id_match: re.Match,
                    chat_id: int,
                    user_id: int,
@@ -159,27 +162,24 @@ async def SearchId(update: Update,
     :param isDEV: 檢查是否為開發人員
     :return:
     """
-    get_Need_Id = id_match.group(1)
-    formatted_item = None
+    get_need_id = id_match.group(1)
     long_item = None
-    if isDEV:
-        data = sql.GetIdData(get_Need_Id)
-    else:
-        data = sql.GetIdUserData(get_Need_Id, user_id, chat_id)
-    for item in data:
-        if not item:
-            return
-        item1 = str(item[1])
-        if len(item1) <= MessageLen:
-            formatted_item = lg.get('id.short.reminder', lang, item[2], item[1])
-        else:
-            formatted_item = lg.get('id.long.reminder', lang, item[2])
-            long_item = item[1]
-    if formatted_item is None:
-        await update.message.reply_text(lg.get('id.none', lang, get_Need_Id))
+    data = sql.GetIdData(get_need_id) if isDEV else sql.GetIdUserData(get_need_id, user_id, chat_id)
+    if len(data) != 1:
+        logger.error(
+            f'預期只有一筆資料，但回傳了 {len(data)} 筆資料\ndate: {data}\nFile: "{__file__}",line {"167" if isDEV else "169"}')
         return
-    if long_item is None:
-        await update.message.reply_text(lg.get('id.get', lang, get_Need_Id, formatted_item))
+    item = data[0]
+    if not item:
+        await update.message.reply_text(lg.get('id.none', lang, get_need_id))
+        return
+    if len(item) <= MessageLen:
+        formatted_item = lg.get('id.short.reminder', lang, item[2], item[1])
     else:
-        await update.message.reply_text(lg.get('id.get', lang, get_Need_Id, formatted_item))
+        formatted_item = lg.get('id.long.reminder', lang, item[2])
+        long_item = item[1]
+    if long_item is None:
+        await update.message.reply_text(lg.get('id.get', lang, get_need_id, formatted_item))
+    else:
+        await update.message.reply_text(lg.get('id.get', lang, get_need_id, formatted_item))
         await bot.send_message(chat_id, long_item)

@@ -12,7 +12,7 @@ def year_select(year, lang):
     :param year: 輸入所需之開始年份
     :return:
     """
-    year_markup = _Select(year, year + 11, 3, 'year', lang)
+    year_markup = _select(year, year + 11, 3, 'year', lang)
     return year_markup
 
 
@@ -23,7 +23,7 @@ def month_select(month, lang):
     :param month: 月份
     :return:
     """
-    month_markup = _Select(month, 12, 6, 'month', lang)
+    month_markup = _select(month, 12, 6, 'month', lang)
     return month_markup
 
 
@@ -36,20 +36,18 @@ def day_select(year, month, day, lang):
     :param day: 日
     :return:
     """
-    day_markup = _Select(day, month_to_day(year, month), 6, 'day', lang)
+    day_markup = _select(day, month_to_day(year, month), 6, 'day', lang)
     return day_markup
 
 
-def _Select(index, max_value: int, inner_list_length: int, callbackText: str, lang: str) -> InlineKeyboardMarkup:
+def _select(index, max_value: int, inner_list_length: int, callbackText: str, lang: str) -> InlineKeyboardMarkup:
     result = []
-    i = 0
     while index <= max_value:
         inner_list = []
         for j in range(inner_list_length):
             _selectDo(index, max_value, inner_list, callbackText, lang)
             index += 1
         result.append(inner_list)
-        i += 1
     result.append(buttonBackCancelHandler(f"{callbackText}_back", lang))
     markup = InlineKeyboardMarkup(result)
     return markup

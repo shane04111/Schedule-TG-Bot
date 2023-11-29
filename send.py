@@ -25,9 +25,9 @@ async def main():
     從資料庫抓取比當前時間早並且尚未提醒過的訊息，並且發送給使用者
     :return:
     """
-    errorData = getError()
+    error_data = getError()
     data = GetData()
-    await send(errorData, 1)
+    await send(error_data, 1)
     await send(data, 2)
 
 

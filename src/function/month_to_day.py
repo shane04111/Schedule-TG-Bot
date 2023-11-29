@@ -15,11 +15,11 @@ def month_to_day(lap_year_input, month_input):
     :param month_input: 月份
     :return:
     """
-    monthDays = [
+    month_days = [
         [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31],
         [31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]
     ]
     month_input = int(month_input)  # 將月份轉換為整數
     lap_year = int(lap_year_input)  # 將年份轉換為整數
     is_leap = is_leap_month(lap_year)
-    return monthDays[is_leap][month_input - 1]
+    return month_days[is_leap][month_input - 1]

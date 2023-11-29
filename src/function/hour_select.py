@@ -51,7 +51,6 @@ def hour_select(hour, lang):
     :return:
     """
     result = []
-    i = 0
     max_value = 23
     inner_list_length = 4
 
@@ -63,7 +62,6 @@ def hour_select(hour, lang):
                     f"{convert_to_chinese_time(hour, lang)}", callback_data=f"{hour}hour"))
             hour += 1
         result.append(inner_list)
-        i += 1
     result.append(buttonBackCancelHandler('HR_back', lang))
-    finalResult = InlineKeyboardMarkup(result)
-    return finalResult
+    final_result = InlineKeyboardMarkup(result)
+    return final_result

@@ -1,7 +1,7 @@
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup
-from src.function.ScheduleModel import sqlModel
+from src.function.ScheduleModel import SqlModel
 
-sql = sqlModel()
+sql = SqlModel()
 
 
 def CreateDeleteButton(user, chat):
@@ -24,13 +24,13 @@ def CreateButton(data, SetButton):
         for index in data:
             inner_list = []
             if len(index[1]) <= n:
-                newText = str(index[1]).replace("\n", " ")
+                new_text = str(index[1]).replace("\n", " ")
                 inner_list.append(InlineKeyboardButton(
-                    f"提醒事項：{newText}, 提醒時間：{index[2]}", callback_data=f"{index[0]}{SetButton}"))
+                    f"提醒事項：{new_text}, 提醒時間：{index[2]}", callback_data=f"{index[0]}{SetButton}"))
             else:
-                getString = str(index[1]).replace("\n", " ")
+                get_string = str(index[1]).replace("\n", " ")
                 inner_list.append(InlineKeyboardButton(
-                    f"提醒事項：{getString[:n]}...,\n"
+                    f"提醒事項：{get_string[:n]}...,\n"
                     f"提醒時間：{index[2]}", callback_data=f"{index[0]}{SetButton}"))
             result.append(inner_list)
     result.append([InlineKeyboardButton("取消", callback_data=f"{SetButton}")])

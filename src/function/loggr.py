@@ -11,27 +11,27 @@ _FILEPATH = f"{_FILE}/log"
 
 
 def logInFile():
-    loggerFile = logging.getLogger(__name__)
+    logger_file = logging.getLogger(__name__)
     level = logging.INFO
     if eval(os.getenv('DEBUG')):
         level = logging.DEBUG
-    loggerFile.setLevel(level)
+    logger_file.setLevel(level)
     log_filename = f"{_FILEPATH}/log.log"
     file = logging.FileHandler(log_filename, encoding='utf-8')
     file.setFormatter(logging.Formatter('%(asctime)s - %(levelname)s - %(message)s'))
-    loggerFile.addHandler(file)
-    return loggerFile
+    logger_file.addHandler(file)
+    return logger_file
 
 
 def logFinal():
-    logSuffix = ""
-    logFileName = f"{_FILEPATH}/log_{time_date()}{logSuffix}.log"
+    log_suffix = ""
+    log_file_name = f"{_FILEPATH}/log_{time_date()}{log_suffix}.log"
     counter = 1
-    while os.path.isfile(logFileName):
-        logSuffix = f"_{counter}"
-        logFileName = f"{_FILEPATH}/log_{time_date()}{logSuffix}.log"
+    while os.path.isfile(log_file_name):
+        log_suffix = f"_{counter}"
+        log_file_name = f"{_FILEPATH}/log_{time_date()}{log_suffix}.log"
         counter += 1
-    os.rename(f"{_FILEPATH}/log.log", logFileName)
+    os.rename(f"{_FILEPATH}/log.log", log_file_name)
 
 
 logger = logInFile()

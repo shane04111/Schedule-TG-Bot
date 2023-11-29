@@ -28,8 +28,8 @@ class Language:
     def _getDefault(self, translator: str | None, inpData: tuple) -> str:
         data = _loadLanguage(f"{self._getFile}/zh-hant.json")
         if inpData is not None and translator in data:
-            subData = data[translator] % inpData
-            return subData
+            sub_data = data[translator] % inpData
+            return sub_data
         if translator not in data:
             return translator
         return data[translator]
@@ -39,14 +39,14 @@ class Language:
             return self._getDefault(translator, inpData)
         data = _loadLanguage(f"{self._getFile}/{toLanguage}.json")
         if inpData is not None and translator in data:
-            subData = data[translator] % inpData
-            return subData
+            sub_data = data[translator] % inpData
+            return sub_data
         if inpData is None:
-            laseData = ()
+            lase_data = ()
         else:
-            laseData = inpData
+            lase_data = inpData
         if translator not in data:
-            return self._getDefault(translator, laseData)
+            return self._getDefault(translator, lase_data)
         return data[translator]
 
     def getDefault(self, local: UserLocal, default: str | None) -> str:

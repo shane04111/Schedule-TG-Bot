@@ -4,11 +4,11 @@ from datetime import datetime
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup
 
 from src.function import lg
-from src.function.ScheduleModel import sqlModel
+from src.function.ScheduleModel import SqlModel
 from src.function.month_to_day import month_to_day
 from src.function.my_time import time_year, time_month, time_day, time_date
 
-sql = sqlModel()
+sql = SqlModel()
 
 
 class MarkUp:
@@ -16,13 +16,13 @@ class MarkUp:
         self._lang = lang
 
     def firstCheck(self) -> InlineKeyboardMarkup:
-        TF = InlineKeyboardMarkup([
+        tf = InlineKeyboardMarkup([
             [
                 InlineKeyboardButton(lg.get("button.text.true", self._lang), callback_data='text_true'),
                 InlineKeyboardButton(lg.get("button.text.false", self._lang), callback_data='cancel')
             ]
         ])
-        return TF
+        return tf
 
     def finalCheck(self) -> InlineKeyboardMarkup:
         check = InlineKeyboardMarkup([
@@ -54,13 +54,13 @@ class MarkUp:
 
 
 def true_false_text(lang) -> InlineKeyboardMarkup:
-    TF = InlineKeyboardMarkup([
+    tf = InlineKeyboardMarkup([
         [
             InlineKeyboardButton(lg.get("button.text.true", lang), callback_data='text_true'),
             InlineKeyboardButton(lg.get("button.text.false", lang), callback_data='cancel')
         ]
     ])
-    return TF
+    return tf
 
 
 def config_check(lang) -> InlineKeyboardMarkup:
@@ -95,11 +95,11 @@ def time_chose_data_function(lang) -> InlineKeyboardMarkup:
 
 
 def buttonBackCancelHandler(data: str, lang: str) -> list[InlineKeyboardButton]:
-    BC = [
+    bc = [
         InlineKeyboardButton(lg.get('button.back', lang), callback_data=data),
         InlineKeyboardButton(lg.get('button.cancel', lang), callback_data='cancel')
     ]
-    return BC
+    return bc
 
 
 def check_YMD():
@@ -114,18 +114,18 @@ def check_YMD():
         if time_month() == 12 and time_day() == 31:
             lest_month = 1
             lest_year = time_year() + 1
-            TF_check = True
-            return DateResult(lest_year, lest_month, TF_check)
+            tf_check = True
+            return DateResult(lest_year, lest_month, tf_check)
         else:
             lest_month = time_month() + 1
             lest_year = time_year()
-            TF_check = True
-            return DateResult(lest_year, lest_month, TF_check)
+            tf_check = True
+            return DateResult(lest_year, lest_month, tf_check)
     else:
         lest_month = time_month()
         lest_year = time_year()
-        TF_check = False
-        return DateResult(lest_year, lest_month, TF_check)
+        tf_check = False
+        return DateResult(lest_year, lest_month, tf_check)
 
 
 class DateResult:

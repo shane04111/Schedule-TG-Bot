@@ -1,5 +1,4 @@
 import os
-from datetime import datetime
 
 import mysql.connector
 from dotenv import load_dotenv
@@ -19,8 +18,8 @@ class Sql:
     def QueryData(self, sql: str, data: tuple | list | None = None) -> list[tuple]:
         try:
             self._connect()
-            tupleData = _dateToTuple(data)
-            return self._query(sql, tupleData)
+            tuple_data = _dateToTuple(data)
+            return self._query(sql, tuple_data)
         except mysql.connector.errors.IntegrityError:
             logger.error(f'抓取數據時發生錯誤: 數據完整性違規 \nsql語句: {sql}\ndata: {data}', exc_info=True)
         except mysql.connector.errors.DataError:
@@ -36,12 +35,12 @@ class Sql:
         sql = None
         try:
             self._connect()
-            tupleData = _dateToTuple(data)
-            columnsString = str(columns).replace("'", "`")
+            tuple_data = _dateToTuple(data)
+            columns_string = str(columns).replace("'", "`")
             sql = f"""
-            INSERT INTO {tableName} {columnsString} VALUES ({', '.join(['%s'] * len(columns))})
+            INSERT INTO {tableName} {columns_string} VALUES ({', '.join(['%s'] * len(columns))})
             """
-            self._cursor.execute(sql, tupleData)
+            self._cursor.execute(sql, tuple_data)
             self._conn.commit()
         except mysql.connector.errors.DataError:
             logger.error(f'插入數據時發生錯誤: 數據錯誤，數據格式不正確 \nsql語句: {sql}\ndata: {data}', exc_info=True)
@@ -113,6 +112,6 @@ class Sql:
 def _dateToTuple(data: tuple | list) -> tuple:
     if isinstance(data, list):
         logger.info('data is array, turn to tuple')
-        tupleData = tuple(data)
-        return tupleData
+        tuple_data = tuple(data)
+        return tuple_data
     return data

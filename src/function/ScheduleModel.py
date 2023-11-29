@@ -1,13 +1,11 @@
-from datetime import datetime
-from typing import List, Tuple
-
 from src.function.SqlClass import Sql
+from src.function.loggr import logger
 from src.function.my_time import time_datetime
 
 DBHandler = Sql()
 
 
-class sqlModel:
+class SqlModel:
     def __init__(self):
         self.db = DBHandler
 
@@ -104,7 +102,7 @@ class sqlModel:
         :param sort:
         :return:
         """
-        sql = f"""
+        sql = """
         SELECT ID, Message, DateTime 
         FROM Schedule.schedule 
         WHERE UserID = %s
@@ -114,16 +112,20 @@ class sqlModel:
         data = (userId, chatID, number,)
         return self.db.QueryData(sql, data)
 
-    def GetIdData(self, GetId: int) -> list[tuple]:
+    def GetIdData(self, GetId: int) -> list[tuple] | None:
         """
         抓取特定id資料
         :return:
         """
         sql = "SELECT ID, Message, DateTime FROM Schedule.schedule WHERE ID = %s;"
         data = (GetId,)
-        return self.db.QueryData(sql, data)
+        final = self.db.QueryData(sql, data)
+        if len(final) != 1:
+            logger.error(f'預期只有一筆資料，但回傳了 {len(final)} 筆資料\ndate: {final}\nFile "{__file__}",line 121')
+            return None
+        return final
 
-    def GetIdUserData(self, GetId: int, userId: int, chatId: int) -> list[tuple]:
+    def GetIdUserData(self, get_id: int, user: int, chat: int) -> list[tuple]:
         """
         抓取特定id資料
         :return:
@@ -135,25 +137,10 @@ class sqlModel:
         AND UserID = %s
         AND ChatID = %s;
         """
-        data = (GetId, userId, chatId,)
+        data = (get_id, user, chat,)
         return self.db.QueryData(sql, data)
 
-    def GetLotId(self, IdFirst: int, IdLest: int) -> list[tuple]:
-        """
-            抓取特定區間id資料
-            :return:
-        """
-        sql = """
-        SELECT ID, Message, DateTime 
-        FROM Schedule.schedule
-        WHERE ID 
-        BETWEEN %s 
-        AND %s;
-        """
-        data = (IdFirst, IdLest,)
-        return self.db.QueryData(sql, data)
-
-    def showData(self, userId: int, chatID: int, number: int) -> list[tuple]:
+    def showData(self, user: int, chat: int, number: int) -> list[tuple]:
         sql = """
         SELECT ID, Message, DateTime 
         FROM Schedule.schedule 
@@ -162,7 +149,7 @@ class sqlModel:
         ORDER BY ID
         LIMIT 10 OFFSET %s;
         """
-        data = (userId, chatID, number,)
+        data = (user, chat, number,)
         return self.db.QueryData(sql, data)
 
     def showAllData(self, number: int) -> list[tuple]:
@@ -172,5 +159,24 @@ class sqlModel:
         ORDER BY ID
         LIMIT 10 OFFSET %s;
         """
-        data = (number, )
+        data = (number,)
         return self.db.QueryData(sql, data)
+
+    def getMessageID(self, chat: int, message: int) -> list[tuple]:
+        sql = """
+        SELECT MessageID, ID
+        FROM Schedule.UserData
+        WHERE ChatID = %s
+        AND UserMessageID = %s
+        """
+        data = (chat, message,)
+        return self.db.QueryData(sql, data)
+
+    def editText(self, number: int, text: str) -> None:
+        sql = """
+        UPDATE Schedule.UserData
+        SET `Text` = %s
+        WHERE ID = %s;
+        """
+        data = (text, number,)
+        self.db.DoSqlData(sql, data)

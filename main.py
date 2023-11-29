@@ -9,7 +9,8 @@ from telegram.ext import ApplicationBuilder, CommandHandler, CallbackQueryHandle
 
 from src.function.loggr import logger, logFinal
 from src.util.ButtonHandler import ScheduleButton
-from src.util.Commands import commands
+from src.util.Commands import Commands
+from src.util.EditMessage import editMessage
 from src.util.MessageHandle import MessageHandle
 
 logger.info('logger start')
@@ -25,7 +26,7 @@ def app():
     :return:
     """
     application = ApplicationBuilder().token(TOKEN).build()
-    command = commands()
+    command = Commands()
 
     application.add_error_handler(command.error_handler)
     application.add_handler(CommandHandler(["start", "help"], command.start))
@@ -35,7 +36,8 @@ def app():
     application.add_handler(CommandHandler("show", command.show))
     application.add_handler(CommandHandler("showall", command.showAll))
     application.add_handler(CallbackQueryHandler(ScheduleButton))
-    application.add_handler(MessageHandler(filters.TEXT, MessageHandle))
+    application.add_handler(MessageHandler(filters.UpdateType.MESSAGE, MessageHandle))
+    application.add_handler(MessageHandler(filters.UpdateType.EDITED_MESSAGE, editMessage))
 
     print("機器人已上線")
     logger.info('機器人已上線')

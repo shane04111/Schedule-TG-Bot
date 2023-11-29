@@ -1,5 +1,3 @@
-import os
-
 from src.function.SqlClass import Sql
 
 DBHandler = Sql()

@@ -1,7 +1,7 @@
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup
 
 from src.function import lg
-from src.function.my_time import time_minute, time_second
+from src.function.my_time import myTime
 from src.function.replay_markup import buttonBackCancelHandler
 
 
@@ -30,16 +30,15 @@ def minute_select(check_min: bool, lang):
     :return:
     """
     if check_min:
-        if time_second() > 30:
-            minute = time_minute() + 2
-        elif time_minute() > 58:
+        if myTime().second > 30:
+            minute = myTime().minute + 2
+        elif myTime().minute > 58:
             minute = 0
         else:
-            minute = time_minute() + 1
+            minute = myTime().minute + 1
     else:
         minute = 0
     result = []
-    i = 0
     max_value = 59
     inner_list_length = 5
 
@@ -51,11 +50,10 @@ def minute_select(check_min: bool, lang):
                     f"{check_minute_time(minute, lang)}", callback_data=f"{minute}min"))
             minute += 1
         result.append(inner_list)
-        i += 1
     result.append(buttonBackCancelHandler('MIN_back', lang))
-    finalResult = InlineKeyboardMarkup(result)
+    final_result = InlineKeyboardMarkup(result)
 
-    return finalResult
+    return final_result
 
 
 def _minuteDo(minute, max_value, inner_list, lang):

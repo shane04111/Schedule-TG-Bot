@@ -1,4 +1,7 @@
+import functools
+
 from src.function.ScheduleModel import DBHandler
+from src.function.loggr import logger
 
 
 class UserLocal:
@@ -32,6 +35,7 @@ class UserLocal:
         return self
 
     def update(self):
+        # todo 避免sql injection
         update = ", ".join(f"{key} = %s" for key in self._setSql)
         sql = f"""
         UPDATE Schedule.UserLocal
@@ -42,40 +46,31 @@ class UserLocal:
         DBHandler.DoSqlData(sql, data)
 
     def _getLang(self):
-        sql = f"""
+        sql = """
         SELECT Language
         FROM Schedule.UserLocal
         WHERE chatID = %s
         """
         date = DBHandler.QueryData(sql, (self._chat,))
-        if date:
-            return date[0][0]
-        else:
-            return None
+        return _checkData(date, 51)
 
     def _getOnly(self):
-        sql = f"""
+        sql = """
         SELECT OnlyAdmin
         FROM Schedule.UserLocal
         WHERE chatID = %s
         """
         date = DBHandler.QueryData(sql, (self._chat,))
-        if date:
-            return date[0][0]
-        else:
-            return None
+        return _checkData(date, 61)
 
     def _getLocal(self):
-        sql = f"""
+        sql = """
         SELECT Localtime
         FROM Schedule.UserLocal
         WHERE chatID = %s
         """
         date = DBHandler.QueryData(sql, (self._chat,))
-        if date:
-            return date[0][0]
-        else:
-            return None
+        return _checkData(date, 69)
 
     def _check(self):
         sql = """
@@ -86,10 +81,21 @@ class UserLocal:
         date = DBHandler.QueryData(sql, (self._chat,))
         if date:
             return True
-        else:
-            return False
+        return False
 
     def initUserLocal(self, language: str = "en"):
         sql = ('chatID', 'Language',)
         data = (self._chat, language,)
         DBHandler.insertData('Schedule.UserLocal', sql, data)
+
+
+def _checkData(date, line: int):
+    if len(date) > 1:
+        logger.error(f'預期只有一筆資料，但回傳了 {len(date)} 筆資料'
+                     f'\ndata: {date}'
+                     f'\nFile: "{__file__}", line {line}')
+        return None
+    if date:
+        return date[0][0]
+    else:
+        return None
