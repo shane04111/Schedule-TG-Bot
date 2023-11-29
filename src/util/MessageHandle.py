@@ -139,7 +139,7 @@ async def startSet(update,
             lg.get('schedule.reminder.check.short', lang, text1),
             reply_markup=mark.firstCheck())
     else:
-        await update.replay_text(text)
+        await update.reply_text(text)
         msg = await update.edited_message.reply_markdown_v2(lg.get('schedule.reminder.check.long', lang),
                                                             reply_markup=mark.firstCheck())
     message_id = msg.message_id
