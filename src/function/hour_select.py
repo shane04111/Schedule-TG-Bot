@@ -1,7 +1,7 @@
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup
 
 from src.function import lg
-from src.function.replay_markup import buttonBackCancelHandler
+from src.function.replay_markup import MarkUp
 
 
 def convert_to_chinese_time(hour, lang):
@@ -62,6 +62,6 @@ def hour_select(hour, lang):
                     f"{convert_to_chinese_time(hour, lang)}", callback_data=f"{hour}hour"))
             hour += 1
         result.append(inner_list)
-    result.append(buttonBackCancelHandler('HR_back', lang))
+    result.append(MarkUp(lang).back('HR_back'))
     final_result = InlineKeyboardMarkup(result)
     return final_result

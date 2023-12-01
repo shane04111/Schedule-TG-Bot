@@ -35,6 +35,7 @@ def app():
     application.add_handler(CommandHandler("loacltime", command.localTime))
     application.add_handler(CommandHandler("show", command.show))
     application.add_handler(CommandHandler("showall", command.showAll))
+    application.add_handler(CommandHandler("test", command.test))
     application.add_handler(CallbackQueryHandler(ScheduleButton))
     application.add_handler(MessageHandler(filters.UpdateType.MESSAGE, MessageHandle))
     application.add_handler(MessageHandler(filters.UpdateType.EDITED_MESSAGE, editMessage))

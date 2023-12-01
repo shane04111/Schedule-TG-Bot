@@ -2,7 +2,7 @@ from telegram import InlineKeyboardButton, InlineKeyboardMarkup
 
 from src.function import lg
 from src.function.my_time import myTime
-from src.function.replay_markup import buttonBackCancelHandler
+from src.function.replay_markup import MarkUp
 
 
 def check_minute_time(minute, lang):
@@ -50,7 +50,7 @@ def minute_select(check_min: bool, lang):
                     f"{check_minute_time(minute, lang)}", callback_data=f"{minute}min"))
             minute += 1
         result.append(inner_list)
-    result.append(buttonBackCancelHandler('MIN_back', lang))
+    result.append(MarkUp(lang).back('MIN_back'))
     final_result = InlineKeyboardMarkup(result)
 
     return final_result

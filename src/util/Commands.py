@@ -9,7 +9,7 @@ from src.function.UserDataModel import start
 from src.function.UserLocalModel import UserLocal
 from src.function.loggr import logger
 from src.function.my_time import time_datetime
-from src.function.replay_markup import ShowButton
+from src.function.replay_markup import ShowButton, DateSelect
 from src.local.localTime import Local
 from src.translator.getLang import Language
 from src.util import DEV_array
@@ -127,3 +127,8 @@ class Commands:
         msg = await self._update.reply_text(text, reply_markup=mark)
         start(self._user_id, self._chat_id, msg.message_id, self._message_id, self._update.text)
         return
+
+    async def test(self, update: Update, cntext: ContextTypes.DEFAULT_TYPE):
+        self._init(update)
+        await self._send(update, cntext, self._lg.get('time.select', self._language),
+                         DateSelect(self._language).select_day(2023, 12, 0).final())

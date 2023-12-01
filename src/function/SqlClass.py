@@ -111,7 +111,7 @@ class Sql:
 
 def _dateToTuple(data: tuple | list) -> tuple:
     if isinstance(data, list):
-        logger.info('data is array, turn to tuple')
+        logger.debug('data is array, turn to tuple')
         tuple_data = tuple(data)
         return tuple_data
     return data

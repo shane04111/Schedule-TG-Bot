@@ -2,7 +2,7 @@ from telegram import InlineKeyboardButton, InlineKeyboardMarkup
 
 from src.function import lg
 from src.function.month_to_day import month_to_day
-from src.function.replay_markup import buttonBackCancelHandler
+from src.function.replay_markup import MarkUp
 
 
 def year_select(year, lang):
@@ -48,7 +48,7 @@ def _select(index, max_value: int, inner_list_length: int, callbackText: str, la
             _selectDo(index, max_value, inner_list, callbackText, lang)
             index += 1
         result.append(inner_list)
-    result.append(buttonBackCancelHandler(f"{callbackText}_back", lang))
+    result.append(MarkUp(lang).back(f"{callbackText}_back"))
     markup = InlineKeyboardMarkup(result)
     return markup
 

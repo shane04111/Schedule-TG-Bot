@@ -131,7 +131,7 @@ async def startSet(update,
     :return:
     """
     mark = MarkUp(lang)
-    logger.debug(len(text))
+    logger.debug(f"len text: {len(text)}")
     user_message = update.message_id
     if len(text) <= MessageLen:
         text1 = f'```\n{text}```'
@@ -140,8 +140,8 @@ async def startSet(update,
             reply_markup=mark.firstCheck())
     else:
         await update.reply_text(text)
-        msg = await update.edited_message.reply_markdown_v2(lg.get('schedule.reminder.check.long', lang),
-                                                            reply_markup=mark.firstCheck())
+        msg = await update.reply_text(lg.get('schedule.reminder.check.long', lang),
+                                      reply_markup=mark.firstCheck())
     message_id = msg.message_id
     start(user, chat, message_id, user_message, text)
 

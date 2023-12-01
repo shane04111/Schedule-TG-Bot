@@ -82,7 +82,7 @@ class UserDataInsert:
         SET {self._setData()} 
         WHERE ID = %s;
         """
-        logger.info(self._setData())
+        logger.debug(self._setData())
         DBHandler.DoSqlData(sql, self._setDB())
 
 

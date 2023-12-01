@@ -14,25 +14,27 @@ from src.function.hour_select import hour_select, convert_to_chinese_time
 from src.function.loggr import logger
 from src.function.minute_select import minute_select
 from src.function.my_time import myTime
-from src.function.replay_markup import time_chose_data_function, true_false_text, check_YMD, config_check, ShowButton
+from src.function.replay_markup import check_YMD, ShowButton, MarkUp
 from src.util import MessageLen, bot
 
 sql = SqlModel()
 
 
-async def ScheduleButton(update: Update, context: ContextTypes.DEFAULT_TYPE):
+async def ScheduleButton(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """
         按鈕檢測及回應
         :param update:
         :param context:
         :return:
     """
+    context.bot_data.keys()
     query = update.callback_query
     query_user_id = query.from_user.id
     query_chat_id = query.message.chat.id
     query_message_id = query.message.message_id
     local = UserLocal(query_chat_id)
     language = lg.getDefault(local, query.from_user.language_code)
+    mark = MarkUp(language)
     # ==========user_data===========
     key = {
         'user': query_user_id,
@@ -55,13 +57,15 @@ async def ScheduleButton(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not user_data.checkUser:
         return
     if query.data == "text_true":
-        await EditMessage(query, lg.get("schedule.check.time", language), time_chose_data_function(language))
+        await EditMessage(query, lg.get("schedule.check.time", language), mark.choseDate())
+        return
     elif query.data == "time_back":
         text = user_data.text
         if len(text) <= MessageLen:
-            await EditMessage(query, lg.get("schedule.reminder.check.short", language, text), true_false_text(language))
-        else:
-            await EditMessage(query, lg.get("schedule.reminder.check.long", language), true_false_text(language))
+            await EditMessage(query, lg.get("schedule.reminder.check.short", language, text), mark.firstCheck())
+            return
+        await EditMessage(query, lg.get("schedule.reminder.check.long", language), mark.firstCheck())
+        return
     elif query.data == "today":
         SaveTimeDate(user_data, myTime().year, myTime().month, myTime().day, True, False)
         if myTime().minute > 57:
@@ -70,90 +74,100 @@ async def ScheduleButton(update: Update, context: ContextTypes.DEFAULT_TYPE):
             set_select_hour = myTime().hour
         await EditMessage(query, lg.get("schedule.hour", language, SendTime(key, 3, language)),
                           hour_select(set_select_hour, language))
+        return
     elif query.data == "set_day":
         SaveTimeDate(user_data, check_YMD().year, check_YMD().month, -1, False, False)
-        if check_YMD().is_valid:
-            year_need = check_YMD().year
-            month_need = check_YMD().month
-            day_need = 1
-        else:
-            year_need = check_YMD().year
-            month_need = check_YMD().month
-            day_need = myTime().day + 1
+        year_need = check_YMD().year
+        month_need = check_YMD().month
+        day_need = 1 if check_YMD().is_valid else myTime().day + 1
         await EditMessage(query, lg.get("schedule.day", language, SendTime(key, 2, language)),
                           day_select(year_need, month_need, day_need, language))
+        return
     elif query.data == "only_year":
         SaveTimeDate(user_data, check_YMD().year, -1, -1, False, True)
-        if check_YMD().is_valid:
-            month_need = check_YMD().month
-        else:
-            month_need = myTime().month + 1
+        month_need = check_YMD().month if check_YMD().is_valid else myTime().month + 1
         await EditMessage(query, lg.get("schedule.month", language, SendTime(key, 1, language)),
                           month_select(month_need, language))
+        return
     elif query.data == "all_set":
         SaveTimeDate(user_data, -1, -1, -1, False, True)
         await EditMessage(query, lg.get("schedule.year", language), year_select(myTime().year + 1, language))
+        return
     elif query.data == "year_back":
-        await EditMessage(query, lg.get("schedule.back", language), time_chose_data_function(language))
+        await EditMessage(query, lg.get("schedule.back", language), mark.choseDate())
+        return
     elif query.data == "month_back":
         year_need = user_data.year
         if year_need == myTime().year:
-            await EditMessage(query, lg.get("schedule.back", language), time_chose_data_function(language))
-        else:
-            await EditMessage(query, lg.get("schedule.back.month", language, SendTime(key, 1, language)),
-                              year_select(myTime().year + 1, language))
+            await EditMessage(query, lg.get("schedule.back", language), mark.choseDate())
+            return
+        await EditMessage(query, lg.get("schedule.back.month", language, SendTime(key, 1, language)),
+                          year_select(myTime().year + 1, language))
+        return
     elif year_match:
         get_year = int(year_match.group(1))
         insert.Year(get_year).insert()
         await EditMessage(query, lg.get("schedule.match.year", language, f"{get_year}"),
                           month_select(1, language))
+        return
     elif month_match:
         get_month = int(month_match.group(1))
         insert.Month(get_month).insert()
         year_need = user_data.year
         await EditMessage(query, lg.get("schedule.match.month", language, f"{year_need}/{get_month}"),
                           day_select(year_need, get_month, 1, language))
+        return
     elif day_match:
         get_day = int(day_match.group(1))
         insert.Day(get_day).insert()
         await EditMessage(query, lg.get("schedule.hour", language, SendTime(key, 3, language)),
                           hour_select(0, language))
+        return
     elif query.data == "day_back":
         if user_data.onlyYear:
             month_need = getNeedMonth(user_data)
             await EditMessage(query, lg.get("schedule.month", language, SendTime(key, 2, language)),
                               month_select(month_need, language))
-        else:
-            await EditMessage(query, lg.get("schedule.back", language), time_chose_data_function(language))
+            return
+        await EditMessage(query, lg.get("schedule.back", language), mark.choseDate())
+        return
     elif hour_match:
         get_hour = int(hour_match.group(1))
         insert.Hour(get_hour).insert()
         await EditMessage(query,
                           lg.get("schedule.minute", language, SendTime(key, 4, language)),
                           hour_check_button(key, language))
+        return
     elif query.data == "HR_back":
         if user_data.today:
-            await EditMessage(query, lg.get("schedule.back", language), time_chose_data_function(language))
-        else:
-            await hourBack(query, key, user_data, language)
+            await EditMessage(query, lg.get("schedule.back", language), mark.choseDate())
+            return
+        await hourBack(query, key, user_data, language)
+        return
     elif min_match:
         get_min = int(min_match.group(1))
         insert.Minute(get_min).insert()
-        await EditMessage(query, message_check_text(key, language), config_check(language))
+        await EditMessage(query, message_check_text(key, language), mark.finalCheck())
+        return
     elif query.data == "MIN_back":
         await EditMessage(query, lg.get("schedule.hour", language, SendTime(key, 4, language)),
                           hour_select(hour_check_need(key), language))
+        return
     elif query.data == "config_true":
         FinalSaveData(key)
         await EditMessage(query, lg.get("schedule.done", language))
+        return
     elif query.data == "config_false":
-        await EditMessage(query, lg.get("schedule.back", language), time_chose_data_function(language))
+        await EditMessage(query, lg.get("schedule.back", language), mark.choseDate())
+        return
     elif query.data == "config_back":
         await EditMessage(query, lg.get("schedule.minute", language, SendTime(key, 4, language)),
                           hour_check_button(key, language))
+        return
     elif query.data == "cancel":
         insert.done().insert()
         await EditMessage(query, lg.get("schedule.cancel", language))
+        return
     elif delete_match:
         get_delete = delete_match.group(1)
         sql.ChangeSendTrue(get_delete)
@@ -161,30 +175,36 @@ async def ScheduleButton(update: Update, context: ContextTypes.DEFAULT_TYPE):
         if del_data:
             await EditMessage(query, "已刪除所選提醒，還有以下提醒：",
                               CreateDeleteButton(query_user_id, query_chat_id))
-        else:
-            await EditMessage(query, "無提醒訊息")
+            return
+        await EditMessage(query, "無提醒訊息")
+        return
     elif query.data == "del":
         await EditMessage(query, "如需重新刪除提醒請再次輸入指令")
+        return
     elif redo_match:
         get_redo = redo_match.group(1)
         data = sql.GetIdData(get_redo)
         if len(data) != 1:
             logger.error(f'預期只有一筆資料，但回傳了 {len(data)} 筆資料\ndate: {data}\nFile: "{__file__}",line 121')
-            return None
+            return
         text = data[0][1]
         insert.Text(text)
         if len(text) >= MessageLen:
             await bot.sendMessage(query_chat_id, text)
-            await EditMessage(query, lg.get("schedule.reminder.check.long", language), true_false_text(language))
-        else:
-            await EditMessage(query, lg.get("schedule.reminder.check.short", language, text), true_false_text(language))
+            await EditMessage(query, lg.get("schedule.reminder.check.long", language), mark.firstCheck())
+            return
+        await EditMessage(query, lg.get("schedule.reminder.check.short", language, text), mark.firstCheck())
+        return
     elif query.data in lg.lang:
         local.language(query.data).update()
         await EditMessage(query, lg.get("local.language.done", query.data))
+        return
     elif page_match:
         await _showMessage(query, page_match, query_user_id, query_chat_id, language)
+        return
     elif return_match:
         await _showMessage(query, return_match, query_user_id, query_chat_id, language)
+        return
     elif query.data == 'empty':
         return
     else:
@@ -339,9 +359,8 @@ def hour_check_button(key: dict, lang: str) -> InlineKeyboardMarkup:
         if data.hour == myTime().hour:
             set_minute_button = minute_select(True, lang)
             return set_minute_button
-        else:
-            set_minute_button = minute_select(False, lang)
-            return set_minute_button
+        set_minute_button = minute_select(False, lang)
+        return set_minute_button
     else:
         set_minute_button = minute_select(False, lang)
         return set_minute_button
@@ -358,25 +377,22 @@ def hour_check_need(key: dict) -> int:
         if myTime().minute > 57:
             set_select_hour = myTime().hour + 1
             return set_select_hour
-        else:
-            set_select_hour = myTime().hour
-            return set_select_hour
+        set_select_hour = myTime().hour
+        return set_select_hour
     else:
         set_select_hour = 0
         return set_select_hour
 
 
 def getNeedMonth(userData: UserData) -> int:
-    if myTime().year == userData.year:
-        if check_YMD().is_valid:
-            month_need = check_YMD().month
-            return month_need
-        else:
-            month_need = myTime().month + 1
-            return month_need
-    else:
+    if myTime().year != userData.year:
         month_need = 1
         return month_need
+    if check_YMD().is_valid:
+        month_need = check_YMD().month
+        return month_need
+    month_need = myTime().month + 1
+    return month_need
 
 
 async def hourBack(query: CallbackQuery, key: dict, userData: UserData, lang: str) -> None:

@@ -49,6 +49,7 @@
   "id.none": "ID %s 不存在",
   "id.get": "ID %s 的資料是\n%s",
 
+  "time.select": "            請選擇提醒日期            \n           只能選擇未來的日期           ",
   "time.12:00AM": "半夜十二點",
   "time.1:00AM": "凌晨一點",
   "time.2:00AM": "凌晨二點",
@@ -73,7 +74,30 @@
   "time.9:00PM": "晚上九點",
   "time.10:00PM": "晚上十點",
   "time.11:00PM": "晚上十一點",
+
   "time.minute.zero": "整",
   "time.minute.one": "0%s分",
-  "time.minute": "%s分"
+  "time.minute": "%s分",
+
+  "time.year": "%s年",
+  "time.month.1":  "一月",
+  "time.month.2":  "二月",
+  "time.month.3":  "三月",
+  "time.month.4":  "四月",
+  "time.month.5":  "五月",
+  "time.month.6":  "六月",
+  "time.month.7":  "七月",
+  "time.month.8":  "八月",
+  "time.month.9":  "九月",
+  "time.month.10": "十月",
+  "time.month.11": "十一月",
+  "time.month.12": "十二月",
+
+  "time.mon": "一",
+  "time.tu": "二",
+  "time.wed": "三",
+  "time.thur": "四",
+  "time.fri": "五",
+  "time.sat": "六",
+  "time.sun": "日"
 }

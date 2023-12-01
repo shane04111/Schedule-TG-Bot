@@ -172,6 +172,16 @@ class SqlModel:
         data = (chat, message,)
         return self.db.QueryData(sql, data)
 
+    def getCopy(self, chat: int, message: int) -> list[tuple]:
+        sql = """
+        SELECT UserMessageID, ID
+        FROM Schedule.UserData
+        WHERE ChatID = %s
+        AND MessageID = %s
+        """
+        data = (chat, message,)
+        return self.db.QueryData(sql, data)
+
     def editText(self, number: int, text: str) -> None:
         sql = """
         UPDATE Schedule.UserData

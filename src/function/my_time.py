@@ -56,11 +56,12 @@ def myTime():
     second = now.second
     now_time = now.time()
     date = now.date()
-    return Time(now, year, month, day, hour, minute, second, now_time, date)
+    week = now.weekday()
+    return Time(now, year, month, day, hour, minute, second, now_time, date, week)
 
 
 class Time:
-    def __init__(self, now, year, month, day, hour, minute, second, nowTime, date):
+    def __init__(self, now, year, month, day, hour, minute, second, nowTime, date, week):
         self.now = now
         self.year = year
         self.month = month
@@ -70,3 +71,16 @@ class Time:
         self.second = second
         self.nowTime = nowTime
         self.date = date
+        self.week = week
+        pass
+
+    def check_time(self, year: int, month: int):
+        """
+        檢查時間是否為當月
+        :param year:
+        :param month:
+        :return:
+        """
+        if year == self.year and month == self.month:
+            return True
+        return False
