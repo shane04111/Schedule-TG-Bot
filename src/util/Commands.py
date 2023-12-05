@@ -1,4 +1,5 @@
 import os
+from random import Random
 
 from dotenv import load_dotenv
 from telegram import Update, InlineKeyboardMarkup
@@ -8,7 +9,7 @@ from src.function.ScheduleModel import SqlModel
 from src.function.UserDataModel import start
 from src.function.UserLocalModel import UserLocal
 from src.function.loggr import logger
-from src.function.my_time import time_datetime
+from src.function.my_time import time_datetime, myTime
 from src.function.replay_markup import ShowButton, DateSelect
 from src.local.localTime import Local
 from src.translator.getLang import Language
@@ -17,7 +18,6 @@ from src.util import DEV_array
 sql = SqlModel()
 
 
-# TODO: user Local language and time
 class Commands:
     def __init__(self):
         self._lc = Local()
@@ -49,7 +49,7 @@ class Commands:
         self._user_id = self._update.from_user.id
         self._chat_id = self._update.chat.id
         self._message_id = self._update.message_id
-        local = UserLocal(self._chat_id)
+        local = UserLocal(self._chat_id, self._user_id)
         self._language = self._lg.getDefault(local, self._update.from_user.language_code)
 
     async def default(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -127,8 +127,3 @@ class Commands:
         msg = await self._update.reply_text(text, reply_markup=mark)
         start(self._user_id, self._chat_id, msg.message_id, self._message_id, self._update.text)
         return
-
-    async def test(self, update: Update, cntext: ContextTypes.DEFAULT_TYPE):
-        self._init(update)
-        await self._send(update, cntext, self._lg.get('time.select', self._language),
-                         DateSelect(self._language).select_day(2023, 12, 0).final())

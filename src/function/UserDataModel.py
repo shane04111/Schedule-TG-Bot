@@ -82,8 +82,10 @@ class UserDataInsert:
         SET {self._setData()} 
         WHERE ID = %s;
         """
+        data = self._setDB()
         logger.debug(self._setData())
-        DBHandler.DoSqlData(sql, self._setDB())
+        logger.debug(data)
+        DBHandler.DoSqlData(sql, data)
 
 
 class UserData:
@@ -123,7 +125,21 @@ class UserData:
 
 def CheckUser(user, chat, message):
     sql = """
-    SELECT UserID, ChatID, MessageID, Text, Year, Month, Day, Hour, Miner, CheckDone, isToday, isOY, ID, UserMessageID
+    SELECT 
+    UserID, 
+    ChatID, 
+    MessageID, 
+    Text, 
+    Year, 
+    Month, 
+    Day, 
+    Hour, 
+    Miner, 
+    CheckDone, 
+    isToday, 
+    isOY, 
+    ID, 
+    UserMessageID
     FROM Schedule.UserData
     WHERE UserID = %s
     AND ChatID = %s

@@ -10,6 +10,7 @@ from src.function.month_to_day import month_to_day
 from src.function.my_time import time_year, time_month, time_day, time_date, myTime
 
 sql = SqlModel()
+time = myTime()
 
 
 class Button:
@@ -43,24 +44,6 @@ class MarkUp(Button):
         ])
         return check
 
-    def choseDate(self) -> InlineKeyboardMarkup:
-        """
-        判斷時間並返回相對應設定時間按鈕
-        :return:
-        """
-        time_chose_data = [
-            [self._button(f"{lg.get('button.set_today', self._lang, time_date().strftime('%Y/%m/%d'))}",
-                          callback_data='today')],
-            [self._button(f"{lg.get('button.set_day', self._lang, time_date().strftime('%Y/%m'))}",
-                          callback_data='set_day')],
-            [self._button(f"{lg.get('button.set_year', self._lang, time_date().strftime('%Y'))}",
-                          callback_data='only_year')],
-            [self._button(f"{lg.get('button.set_all', self._lang)}", callback_data='all_set')],
-            self.back('time_back')
-        ]
-        time_chose = InlineKeyboardMarkup(time_chose_data)
-        return time_chose
-
     def back(self, data: str):
         bc = [
             self.create('button.back', data),
@@ -75,150 +58,191 @@ class DateSelect(Button):
         self.cld = Calendar()
         self._final_data = []
         self._data = []
-        self._week = [["time.mon", "time.tu", "time.wed", "time.thur", "time.fri", "time.sat", "time.sun"],
-                      ["time.sun", "time.mon", "time.tu", "time.wed", "time.thur", "time.fri", "time.sat"]]
+        self._week = ["time.mon", "time.tue", "time.wed", "time.thu", "time.fri", "time.sat", "time.sun"]
+        self._week_callback = ["-0week", "-6week", "-5week", "-4week", "-3week", "-2week", "-1week"]
+        pass
+
+    def final(self):
+        return InlineKeyboardMarkup(self._final_data)
+
+    def date_pick(self, year: int, month: int, style: int):
+        self._year(year, month)
+        self._month(year, month)
+        self._save_data()
+        month_week = self.cld.monthdays2calendar(year, month)
+        data = _turn(month_week)
+        for _ in range(style):
+            self._week.insert(0, self._week.pop())
+            self._week_callback.insert(0, self._week_callback.pop())
+        for index, date_language in enumerate(self._week):
+            self._data.append(self.create(date_language, f"{year}/{month}{self._week_callback[index]}"))
+        self._save_data()
+        if style:
+            self._style_sunday(data, year, month, style)
+        else:
+            self._style_monday(data, year, month)
+        self._data.append(self.create('<', _month_callback(year, month)))
+        self._data.append(self.create('>', _month_callback(year, month, True)))
+        self._final_data.append(self._data)
+        self._final_data.append(MarkUp(self._lang).back('date_chose'))
+        return self
+
+    def select_month(self, year: int, month: int):
+        self._year(year, month, 'month')
+        self._save_data()
+        self._data.extend([
+            self.create(f'time.month.{i}', f'{year}/{i}date-pick') for i in range(1, 7)
+        ])
+        self._save_data()
+        self._data.extend([
+            self.create(f'time.month.{i}', f'{year}/{i}date-pick') for i in range(7, 13)
+        ])
+        self._save_data()
+        return self
+
+    def select_year(self, year: int, month: int):
+        self._month(year, month, 'year')
+        self._save_data()
+        year_first = year // 10 * 10
+        self._data.extend([
+            self._button(lg.get('time.year.full', self._lang, year_first + i),
+                         callback_data=f'{year_first + i}/{month}date-pick') for i in range(5)
+        ])
+        self._save_data()
+        self._data.extend([
+            self._button(lg.get('time.year.full', self._lang, year_first + i),
+                         callback_data=f'{year_first + i}/{month}date-pick') for i in range(5, 10)
+        ])
+        self._save_data()
+        self._data.append(self.create('<', f'{year_first - 10}/{month}year'))
+        self._data.append(self._button(lg.get('time.year.select', self._lang, year_first, year_first + 9),
+                                       callback_data=f'{year_first}/{month}all-year'))
+        self._data.append(self.create('>', f'{year_first + 10}/{month}year'))
+        self._save_data()
+        return self
+
+    def year_all(self, year: int, month: int):
+        for i in range(year - 70, year + 80, 10):
+            self._year_all_loop(i, year, month)
+        return self
+
+    def _year_all_loop(self, i: int, year: int, month: int):
+        if i < 0:
+            return
+        save = [year - 50, year - 20, year + 10, year + 40, year + 70]
+        self._data.append(
+            self._button(lg.get('time.year.select', self._lang, i, i + 9), callback_data=f'{i}/{month}year'))
+        if i in save:
+            self._save_data()
         pass
 
     def _save_data(self):
         self._final_data.append(self._data)
         self._data = []
+        pass
+
+    def _year(self, year: int, month: int, data: str = 'date-pick'):
+        self._data.append(self.create('<', f'{year - 1}/{month}{data}'))
+        self._data.append(self._button(lg.get('time.year', self._lang, f"{year}"), callback_data=f'{year}/{month}year'))
+        self._data.append(self.create('>', f'{year + 1}/{month}{data}'))
         return self
 
-    def _year(self, year: int):
-        self._data.append(self.create('<', 'lest-year'))
-        self._data.append(self._button(lg.get('time.year', self._lang, f"{year}"), callback_data=f'{year}year'))
-        self._data.append(self.create('>', 'next-year'))
-        return self
-
-    def _month(self, month: int):
-        self._data.append(self.create('<', 'lest-month'))
-        self._data.append(self.create(f'time.month.{month}', f'{month}month'))
-        self._data.append(self.create('>', 'next-month'))
-        return self
-
-    def select_day(self, year: int, month: int, style: int = 0 | 1):
-        self._year(year)
-        self._month(month)
-        self._save_data()
-        month_week = self.cld.monthdays2calendar(year, month)
-        data = _turn(month_week)
-        for i in self._week[style]:
-            self._data.append(self.create(i, 'empty'))
-        self._save_data()
-        if style:
-            self._style_sunday(data, year, month)
-        else:
-            self._style_monday(data, year, month)
-        self._data.append(self.create('<', f'{year}lest-month'))
-        self._data.append(self.create('↻', f'{year}return-month'))
-        self._data.append(self.create('>', f'{year}next-month'))
-        self._final_data.append(self._data)
-        self._final_data.append(MarkUp(self._lang).back('date_chose'))
+    def _month(self, year: int, month: int, data: str = 'date-pick'):
+        self._data.append(self.create('<', _month_callback(year, month, text=data)))
+        self._data.append(self.create(f'time.month.{month}', f'{year}/{month}month'))
+        self._data.append(self.create('>', _month_callback(year, month, True, data)))
         return self
 
     def _style_monday(self, data: list, year: int, month: int):
+
         self._final_data.extend([
             [
                 self.create(f"{value_one if (value_one != 41) and (value_one != 42) else ' '}",
-                            _check_callback_data(value_one, year, month))
+                            _pick_callback(value_one, year, month))
                 for value_one, value_two in data_final
             ]
             for data_final in data
         ])
         pass
 
-    def _style_sunday(self, data: list, year: int, month: int):
-        self._final_data.extend(_StyleSunday(self._lang).finale(data, year, month))
+    def _style_sunday(self, data: list, year: int, month: int, style: int):
+        self._final_data.extend(_StyleSunday(data, year, month, self._lang, style))
         pass
 
-    def final(self):
-        return InlineKeyboardMarkup(self._final_data)
 
+def _StyleSunday(data: list[list[tuple[int, int]]], year: int, month: int, lang: str, style: int):
+    inner = []
+    final = []
 
-class _StyleSunday(Button):
-    """
-    創建日期按鈕以周日為起始
-    """
+    def create(text: str, callback):
+        return InlineKeyboardButton(lg.get(text, lang), callback_data=callback)
 
-    def __init__(self, lang):
-        super().__init__(lang)
-        self._inner = []
-        self._final = []
-        pass
-
-    def finale(self,
-               data: list[list[tuple[int, int]]],
-               year: int,
-               month: int):
-        """
-        創建以周日為一周開始之按鈕
-        :param data:
-        :param year:
-        :param month:
-        :return:
-        """
-        self._inner.append(self.create(" ", "lest-month"))
-        for index, data_final in enumerate(data):
-            self._item_loop(data, index, data_final, year, month)
-        return self._final
-
-    def _item_loop(self,
-                   week: list[list[tuple[int, int]]],
-                   index: int,
-                   data_final: list[tuple[int, int]],
-                   year: int,
-                   month: int):
+    def item_loop():
         """
         讀取第二層list資料的for迴圈，
         與 finale 配套
-        :param index: 第一層list當前指標位置
-        :param data_final: 當前指標指向的資料
-        :param year: user Year
-        :param month: user month
-        :param day: user day
         :return:
         """
         for (value_one, value_two) in data_final:
-            self._item_create(week, value_one, value_two, index, year, month)
+            item_create(value_one, value_two)
         pass
 
-    def _item_create(self,
-                     week: list[list[tuple[int, int]]],
-                     value_one: int,
-                     value_two: int,
-                     index, year: int,
-                     month: int):
+    def item_create(value_one: int,
+                    value_two: int):
         """
         判斷當前位置並給出相應得資料操作，
         與 finale 配套
         :param value_one: 日期
         :param value_two: 星期
-        :param index: 第一層list當前指標位置
-        :param year: user Year
-        :param month: user month
         :return:
         """
-        self._inner.append(self.create(f"{value_one if (value_one != 41) and (value_one != 42) else ' '}",
-                                       _check_callback_data(value_one, year, month)))
-        if value_one == 41 and value_two == 5:
-            self._inner = []
-        elif value_two == 5:
-            self._final.append(self._inner)
-            self._inner = []
-        elif index == len(week) - 1 and value_one != 42 and value_two == 6:
-            self._inner += [self.create(" ", "next-month") for _ in range(6)]
-            self._final.append(self._inner)
-            self._inner = []
+        nonlocal inner
+        inner.append(create(f"{value_one if (value_one != 41) and (value_one != 42) else ' '}",
+                            _pick_callback(value_one, year, month)))
+        all_empty = all(button.text == ' ' for button in inner)
+        if value_one == 41 and value_two == 6 - style:
+            inner = []
+        elif value_two == 6 - style:
+            final.append(inner)
+            inner = []
+        elif index == len(data) - 1 and value_one == 42 and value_two == 7 - style:
+            return
+        elif not all_empty and index == len(data) - 1 and value_two == 6:
+            inner += [create(" ", _month_callback(year, month, True)) for _ in range(7 - style)]
+            final.append(inner)
+            inner = []
+        pass
+
+    for _ in range(style):
+        inner.append(create(" ", _month_callback(year, month)))
+    for index, data_final in enumerate(data):
+        item_loop()
+    return final
 
 
-def _check_callback_data(number: int, year: int, month: int) -> str:
+def _pick_callback(number: int, year: int, month: int) -> str:
     if number == 41 or number == 42:
-        return 'lest-month' if number == 41 else 'next-month'
-    elif (year > myTime().year or
-          (year == myTime().year and month > myTime().month) or
-          (year == myTime().year and month == myTime().month and number >= myTime().day)):
-        return f"{year}/{month}/{number}_day_select"
+        return _month_callback(year, month) if number == 41 else _month_callback(year, month, True)
+    elif (year > time.year or
+          (year == time.year and month > time.month) or
+          (year == time.year and month == time.month and number >= time.day)):
+        return f"{year}/{month}/{number}date_pick"
     return 'empty'
+
+
+def _month_callback(year: int, month: int, lest_next: bool = False, text: str = 'date-pick') -> str:
+    """
+    檢查當前選擇是否為12月或1月，用於修改上下個月的callback_data
+    :param year:
+    :param month:
+    :param lest_next: True -> next, False -> lest
+    :return:
+    """
+    if month == 12:
+        return f"{year + 1}/1{text}" if lest_next else f"{year}/11{text}"
+    elif month == 1:
+        return f"{year}/2{text}" if lest_next else f"{year - 1}/12{text}"
+    return f"{year}/{month + 1}{text}" if lest_next else f"{year}/{month - 1}{text}"
 
 
 def _turn(week: list[list[tuple[int, int]]]) -> list[list[tuple[int, int]]]:
@@ -253,41 +277,9 @@ def _data_turn(row: int,
     return week
 
 
-def check_YMD():
-    """
-    檢查當前日期是否為當月之最後一天，\n
-    如果是則月份加一並回傳True， \n
-
-
-    如果是今天今年的最後一天則加年份與月份加一並回傳True
-    如果不符合上述條件則返回當前年月並回傳False
-    :return:
-    """
-    if time_day() != month_to_day(time_year(), time_month()):
-        lest_month = time_month()
-        lest_year = time_year()
-        tf_check = False
-        return DateResult(lest_year, lest_month, tf_check)
-    if time_month() == 12 and time_day() == 31:
-        lest_month = 1
-        lest_year = time_year() + 1
-        tf_check = True
-        return DateResult(lest_year, lest_month, tf_check)
-    lest_month = time_month() + 1
-    lest_year = time_year()
-    tf_check = True
-    return DateResult(lest_year, lest_month, tf_check)
-
-
-class DateResult:
-    def __init__(self, year: int, month: int, is_valid: bool):
-        self.year = year
-        self.month = month
-        self.is_valid = is_valid
-
-
-class ShowButton:
+class ShowButton(Button):
     def __init__(self, page: int, user: int, chat: int, isAll: bool, lang: str):
+        super().__init__(lang)
         self._isAll = isAll
         self._page = page
         self._replyText = ''
@@ -334,11 +326,11 @@ class ShowButton:
     def _lestMark(self) -> InlineKeyboardMarkup:
         mark = InlineKeyboardMarkup([
             [
-                InlineKeyboardButton('<<', callback_data=f'{self._check}{self.allText}nextPage{1}'),
-                InlineKeyboardButton('<', callback_data=f'{self._check}{self.allText}nextPage{self._page - 1}'),
-                InlineKeyboardButton('↻', callback_data=f'{self._check}{self.allText}return{self._page}'),
-                InlineKeyboardButton(' ', callback_data='empty'),
-                InlineKeyboardButton(' ', callback_data='empty')
+                self.create('<<', f'{self._check}{self.allText}nextPage{1}'),
+                self.create('<', f'{self._check}{self.allText}nextPage{self._page - 1}'),
+                self.create('↻', f'{self._check}{self.allText}return{self._page}'),
+                self.create(' ', 'empty'),
+                self.create(' ', 'empty')
             ]
         ])
         return mark
@@ -346,11 +338,11 @@ class ShowButton:
     def _firstMark(self) -> InlineKeyboardMarkup:
         mark = InlineKeyboardMarkup([
             [
-                InlineKeyboardButton(' ', callback_data='empty'),
-                InlineKeyboardButton(' ', callback_data='empty'),
-                InlineKeyboardButton('↻', callback_data=f'{self._check}{self.allText}return{self._page}'),
-                InlineKeyboardButton('>', callback_data=f'{self._check}{self.allText}nextPage{2}'),
-                InlineKeyboardButton('>>', callback_data=f'{self._check}{self.allText}nextPage{self.final}')
+                self.create(' ', 'empty'),
+                self.create(' ', 'empty'),
+                self.create('↻', f'{self._check}{self.allText}return{self._page}'),
+                self.create('>', f'{self._check}{self.allText}nextPage{2}'),
+                self.create('>>', f'{self._check}{self.allText}nextPage{self.final}')
             ]
         ])
         return mark
@@ -358,11 +350,11 @@ class ShowButton:
     def _middleMark(self) -> InlineKeyboardMarkup:
         mark = InlineKeyboardMarkup([
             [
-                InlineKeyboardButton('<<', callback_data=f'{self._check}{self.allText}nextPage{1}'),
-                InlineKeyboardButton('<', callback_data=f'{self._check}{self.allText}nextPage{self._page - 1}'),
-                InlineKeyboardButton('↻', callback_data=f'{self._check}{self.allText}return{self._page}'),
-                InlineKeyboardButton('>', callback_data=f'{self._check}{self.allText}nextPage{self._page + 1}'),
-                InlineKeyboardButton('>>', callback_data=f'{self._check}{self.allText}nextPage{self.final}')
+                self.create('<<', f'{self._check}{self.allText}nextPage{1}'),
+                self.create('<', f'{self._check}{self.allText}nextPage{self._page - 1}'),
+                self.create('↻', f'{self._check}{self.allText}return{self._page}'),
+                self.create('>', f'{self._check}{self.allText}nextPage{self._page + 1}'),
+                self.create('>>', f'{self._check}{self.allText}nextPage{self.final}')
             ]
         ])
         return mark
@@ -370,11 +362,11 @@ class ShowButton:
     def _oneMark(self) -> InlineKeyboardMarkup:
         mark = InlineKeyboardMarkup([
             [
-                InlineKeyboardButton(' ', callback_data=f'empty'),
-                InlineKeyboardButton(' ', callback_data=f'empty'),
-                InlineKeyboardButton('↻', callback_data=f'{self._check}{self.allText}return{self._page}'),
-                InlineKeyboardButton(' ', callback_data=f'empty'),
-                InlineKeyboardButton(' ', callback_data=f'empty')
+                self.create(' ', f'empty'),
+                self.create(' ', f'empty'),
+                self.create('↻', f'{self._check}{self.allText}return{self._page}'),
+                self.create(' ', f'empty'),
+                self.create(' ', f'empty')
             ]
         ])
         return mark

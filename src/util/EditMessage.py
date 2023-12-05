@@ -18,8 +18,9 @@ async def editMessage(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not edit_msg:
         return
     chat_id = edit_msg.chat.id
+    user_id = edit_msg.from_user.id
     message_id = edit_msg.message_id
-    local = UserLocal(chat_id)
+    local = UserLocal(chat_id, user_id)
     language = lg.getDefault(local, edit_msg.from_user.language_code)
     text = edit_msg.text
     edit_data = sql.getMessageID(chat_id, message_id)

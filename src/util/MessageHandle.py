@@ -27,38 +27,42 @@ async def MessageHandle(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
     :return:
     """
     context.bot_data.keys()
-    text = None
     update_msg = update.message
     if not update_msg:
         return
+    if not update_msg.text:
+        return
+    text = update_msg.text
     user_id = update_msg.from_user.id
     chat_id = update_msg.chat.id
-    local = UserLocal(chat_id)
+    local = UserLocal(chat_id, user_id)
     language = lg.getDefault(local, update_msg.from_user.language_code)
-    if update_msg and update_msg.text:
-        text = update_msg.text
-    else:
-        logger.warning(f"消息為空或無文本內容, user:{user_id}, chat:{chat_id}", exc_info=True)
     id_match = re.search(r'/(\d+)([iI][dD])', text)
     check_commands = r"(![sS]|/[sS])(chedule)?(@EZMinder_bot)?"
     delete_commands = r"(![dD]|/[dD])(elete)?(@EZMinder_bot)?"
     redo_commands = r"(![rR]|/[rR])(edo)?(@EZMinder_bot)?"
     if re.match(check_commands, text):
         await _SetSchedule(update, check_commands, text, user_id, chat_id, language)
+        return
     elif re.match(delete_commands, text):
         del_data = sql.GetUserMessage(user_id, chat_id)
         await DoCommands(update, del_data, "delete.start", CreateDeleteButton(user_id, chat_id),
                          user_id, chat_id, language)
+        return
     elif re.match(redo_commands, text):
         redo_data = sql.GetUserDoneMessage(user_id, chat_id)
         await DoCommands(update, redo_data, "redo.start", CreateRedoButton(user_id, chat_id),
                          user_id, chat_id, language)
+        return
     elif id_match and str(user_id) in DEV_array:
         await searchId(update, id_match, chat_id, user_id, language)
+        return
     elif id_match:
         await searchId(update, id_match, chat_id, user_id, language, False)
+        return
     elif update_msg.chat.type == "private":
         await startSet(update_msg, text, user_id, chat_id, language)
+        return
     else:
         return
 
