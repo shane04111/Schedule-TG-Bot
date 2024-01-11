@@ -1,6 +1,7 @@
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup
 
 from src.function import lg
+from src.function.replay_markup import MarkUp
 
 
 def convert_to_chinese_time(hour, lang):
@@ -50,7 +51,6 @@ def hour_select(hour, lang):
     :return:
     """
     result = []
-    i = 0
     max_value = 23
     inner_list_length = 4
 
@@ -62,10 +62,6 @@ def hour_select(hour, lang):
                     f"{convert_to_chinese_time(hour, lang)}", callback_data=f"{hour}hour"))
             hour += 1
         result.append(inner_list)
-        i += 1
-    result.append([
-        InlineKeyboardButton("回到上一頁", callback_data="HR_back"),
-        InlineKeyboardButton("取消設定", callback_data='cancel')
-    ])
-    finalResult = InlineKeyboardMarkup(result)
-    return finalResult
+    result.append(MarkUp(lang).back('HR_back'))
+    final_result = InlineKeyboardMarkup(result)
+    return final_result

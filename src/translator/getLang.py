@@ -1,6 +1,7 @@
 import json
 import os
-import re
+
+from telegram import InlineKeyboardMarkup, InlineKeyboardButton
 
 from src.function.UserLocalModel import UserLocal
 
@@ -19,30 +20,36 @@ class Language:
         self._allFile = []
         self._getAll()
 
-    def _getAll(self):
+    def _getAll(self) -> list[str, ...]:
         self._allFile = os.listdir(f"{self._getFile}")
         self.lang = [os.path.splitext(file)[0] for file in self._allFile if file.endswith('.json')]
         return self.lang
 
-    def _getDefault(self, translator: str):
+    def _getDefault(self, translator: str | None, inpData: tuple) -> str:
         data = _loadLanguage(f"{self._getFile}/zh-hant.json")
-        if translator in data:
-            return data[translator]
-        else:
-            return translator
-
-    def get(self, translator: str, toLanguage: str = 'zh-hant', inpData: str = None) -> str:
-        if toLanguage not in self.lang:
-            return self._getDefault(translator)
-        data = _loadLanguage(f"{self._getFile}/{toLanguage}.json")
         if inpData is not None and translator in data:
-            subData = re.sub(r"%s", inpData, data[translator])
-            return subData
+            sub_data = data[translator] % inpData
+            return sub_data
         if translator not in data:
-            return self._getDefault(translator)
+            return translator
         return data[translator]
 
-    def getDefault(self, local: UserLocal, default: str | None):
+    def get(self, translator: str, toLanguage: str | None, *inpData: str) -> str:
+        if toLanguage not in self.lang:
+            return self._getDefault(translator, inpData)
+        data = _loadLanguage(f"{self._getFile}/{toLanguage}.json")
+        if inpData is not None and translator in data:
+            sub_data = data[translator] % inpData
+            return sub_data
+        if inpData is None:
+            lase_data = ()
+        else:
+            lase_data = inpData
+        if translator not in data:
+            return self._getDefault(translator, lase_data)
+        return data[translator]
+
+    def getDefault(self, local: UserLocal, default: str | None) -> str:
         if local.Check:
             language = local.Language
             return language
@@ -54,3 +61,28 @@ class Language:
             local.initUserLocal(default)
             language = default
             return language
+
+    def button(self) -> InlineKeyboardMarkup:
+        index = 0
+        max_value = len(self.lang) - 1
+        inner_list_length = 5
+        result = []
+        i = 0
+        while index <= max_value:
+            inner_list = []
+            for j in range(inner_list_length):
+                if index > max_value:
+                    break
+                inner_list.append(
+                    InlineKeyboardButton(self._getLangButton(self.lang[index]), callback_data=self.lang[index]))
+                index += 1
+            result.append(inner_list)
+            i += 1
+        markup = InlineKeyboardMarkup(result)
+        return markup
+
+    def _getLangButton(self, lang: str) -> str:
+        data = _loadLanguage(f"{self._getFile}/{lang}.json")
+        if lang not in data:
+            return lang
+        return data[lang]

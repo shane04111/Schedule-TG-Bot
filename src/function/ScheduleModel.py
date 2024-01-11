@@ -1,121 +1,194 @@
-import os
-
-from dotenv import load_dotenv
-
 from src.function.SqlClass import Sql
-from src.function.loggr import logger
-from src.function.my_time import time_datetime
+from src.function.logger import logger
+from src.function.my_time import myTime
 
-load_dotenv()
-_DB = os.getenv("DB")
-DBHandler = Sql(_DB)
+DBHandler = Sql()
 
 
-def SaveData(Message: str, UserID: int, ChatID: int, Year: int, Month: int, Day: int, Hour: int, Minute: int):
-    """
-    將資料寫入資料庫中
-    :param Message:     使用者輸入
-    :param UserID:      使用者輸入
-    :param ChatID:      使用者輸入
-    :param Year:        使用者輸入
-    :param Month:       使用者輸入
-    :param Day:         使用者輸入
-    :param Hour:        使用者輸入
-    :param Minute:      使用者輸入
-    :return:
-    """
-    DBHandler.insertData(
-        'schedule', ('Message', 'UserID', 'ChatID', 'DateTime', 'UserTime'),
-        (Message, UserID, ChatID, f"{Year}-{Month}-{Day} {Hour}:{Minute}:00", time_datetime()))
+class SqlModel:
+    def __init__(self):
+        self.db = DBHandler
 
-
-def ChangeSendTrue(delID: str):
-    """
-    將提檢查提醒欄位轉為已提醒
-    :param delID:
-    :return:
-    """
-    sql = "UPDATE schedule SET Send = 'True' WHERE ID = ?;"
-    data = [delID]
-    DBHandler.DoSqlData(sql, data)
-
-
-def GetUserMessage(userId, chatID):
-    """
-    抓取特定使用這在特定頻道之提醒訊息
-    :param userId: 使用者ID
-    :param chatID: 使用者所在頻道ID
-    :return:
-    """
-    sql = "SELECT ID, Message, DateTime FROM schedule WHERE Send == 'False' AND UserID = ? AND ChatID = ?;"
-    data = [userId, chatID]
-    return DBHandler.QueryData(sql, data)
-
-
-def GetUserDoneMessage(userId, chatID):
-    """
-    抓取特定使用這在特定頻道之已提醒訊息
-    :param userId: 使用者ID
-    :param chatID: 使用者所在頻道ID
-    :return:
-    """
-    sql = """
-    SELECT ID, Message, DateTime 
-    FROM schedule 
-    WHERE UserID = ? 
-    AND ChatID = ? 
-    ORDER BY ID 
-    DESC LIMIT 5;"""
-    data = [userId, chatID]
-    return DBHandler.QueryData(sql, data)
-
-
-def GetIdData(GetId):
-    """
-    抓取特定id資料
-    :return:
-    """
-    sql = "SELECT ID, Message, DateTime FROM schedule WHERE ID == ?;"
-    data = [GetId, ]
-    return DBHandler.QueryData(sql, data)
-
-
-def GetIdUserData(GetId, userId, chatId):
-    """
-    抓取特定id資料
-    :return:
-    """
-    sql = "SELECT ID, Message, DateTime FROM schedule WHERE ID == ? AND UserID == ? AND ChatID == ?;"
-    data = [GetId, userId, chatId, ]
-    return DBHandler.QueryData(sql, data)
-
-
-def GetLotId(IdFirst: int, IdLest: int):
-    """
-        抓取特定區間id資料
+    def SaveData(self,
+                 Message: str, UserID: int,
+                 ChatID: int, Year: int,
+                 Month: int, Day: int,
+                 Hour: int, Minute: int, done: bool = False) -> None:
+        """
+        將資料寫入資料庫中
+        :param Message:     使用者輸入
+        :param UserID:      使用者輸入
+        :param ChatID:      使用者輸入
+        :param Year:        使用者輸入
+        :param Month:       使用者輸入
+        :param Day:         使用者輸入
+        :param Hour:        使用者輸入
+        :param Minute:      使用者輸入
+        :param done:        是否需要提醒
         :return:
-    """
-    sql = "SELECT ID, Message, DateTime FROM schedule WHERE ID BETWEEN ? AND ?;"
-    data = [IdFirst, IdLest, ]
-    return DBHandler.QueryData(sql, data)
+        """
+        self.db.insertData(
+            'Schedule.schedule', ('Message', 'UserID', 'ChatID', 'DateTime', 'UserTime', 'Send'),
+            (Message, UserID, ChatID, f"{Year}-{Month}-{Day} {Hour}:{Minute}:00", myTime().now,
+             'True' if done else 'False'))
 
+    def saveError(self,
+                  Message: str, UserID: int,
+                  ChatID: int) -> None:
+        """
+        將資料寫入資料庫中
+        :param Message:     使用者輸入
+        :param UserID:      使用者輸入
+        :param ChatID:      使用者輸入
+        :return:
+        """
+        self.db.insertData(
+            'Schedule.Error', ('Message', 'UserID', 'ChatID'),
+            (Message, UserID, ChatID))
 
-def CheckFile():
-    result = DBHandler.QueryData("SELECT name FROM sqlite_master WHERE type='table' AND name='schedule';")
-    # 检查结果
-    if not result:
-        logger.warning("数据库中不存在名为 'schedule' 的表，正在創建 'schedule' 表")
-        DBHandler.DoSql('''
-        CREATE TABLE IF NOT EXISTS "schedule"
-        (
-        ID       INTEGER
-            primary key,
-        Message  TEXT    default 'No Message' not null,
-        UserID   INTEGER default -1           not null,
-        ChatID   INTEGER default -1           not null,
-        DateTime TEXT    default -1           not null,
-        UserTime TEXT    default 'na',
-        Send     TEXT    default 'False'
-        );
-                        ''')
-        logger.warning("'schedule' 表創建完成")
+    def showNumber(self, userId: int, chatId: int) -> list[tuple[int]]:
+        sql = """
+        SELECT COUNT(*) as record_count
+        FROM Schedule.schedule
+        WHERE UserID = %s 
+        AND ChatID = %s;
+        """
+        data = (userId, chatId,)
+        return self.db.QueryData(sql, data)
+
+    def showAllNumber(self) -> list[tuple[int]]:
+        sql = """
+        SELECT COUNT(*) as record_count
+        FROM Schedule.schedule;
+        """
+        return self.db.QueryData(sql)
+
+    def ChangeSendTrue(self, delID: str) -> None:
+        """
+        將提檢查提醒欄位轉為已提醒
+        :param delID:
+        :return:
+        """
+        sql = "UPDATE Schedule.schedule SET Send = 'True' WHERE ID = %s;"
+        data = (delID,)
+        self.db.DoSqlData(sql, data)
+
+    def GetUserMessage(self, userId: int, chatID: int) -> list[tuple]:
+        """
+        抓取特定使用這在特定頻道之提醒訊息
+        :param userId: 使用者ID
+        :param chatID: 使用者所在頻道ID
+        :return:
+        """
+        sql = """
+        SELECT ID, Message, DateTime 
+        FROM Schedule.schedule 
+        WHERE Send = 'False' 
+        AND UserID = %s 
+        AND ChatID = %s
+        ORDER BY ID DESC;
+        """
+        data = (userId, chatID,)
+        return self.db.QueryData(sql, data)
+
+    def GetUserDoneMessage(self,
+                           userId: int,
+                           chatID: int,
+                           number: int = 5,
+                           sort: str = 'DESC') -> list[tuple]:
+        """
+        抓取特定使用這在特定頻道之已提醒訊息
+        :param userId: 使用者ID
+        :param chatID: 使用者所在頻道ID
+        :param number:
+        :param sort:
+        :return:
+        """
+        sql = f"""
+        SELECT ID, Message, DateTime 
+        FROM Schedule.schedule 
+        WHERE UserID = %s
+        AND ChatID = %s
+        ORDER BY ID 
+        {sort} LIMIT %s;"""
+        data = (userId, chatID, number,)
+        return self.db.QueryData(sql, data)
+
+    def GetIdData(self, GetId: int) -> list[tuple] | None:
+        """
+        抓取特定id資料
+        :return:
+        """
+        sql = "SELECT ID, Message, DateTime FROM Schedule.schedule WHERE ID = %s;"
+        data = (GetId,)
+        final = self.db.QueryData(sql, data)
+        if len(final) != 1:
+            logger.error(f'預期只有一筆資料，但回傳了 {len(final)} 筆資料\ndate: {final}\nFile "{__file__}",line 121')
+            return None
+        return final
+
+    def GetIdUserData(self, get_id: int, user: int, chat: int) -> list[tuple]:
+        """
+        抓取特定id資料
+        :return:
+        """
+        sql = """
+        SELECT ID, Message, DateTime 
+        FROM Schedule.schedule 
+        WHERE ID = %s
+        AND UserID = %s
+        AND ChatID = %s;
+        """
+        data = (get_id, user, chat,)
+        return self.db.QueryData(sql, data)
+
+    def showData(self, user: int, chat: int, number: int) -> list[tuple]:
+        sql = """
+        SELECT ID, Message, DateTime 
+        FROM Schedule.schedule 
+        WHERE UserID = %s
+        AND ChatID = %s
+        ORDER BY ID DESC 
+        LIMIT 10 OFFSET %s;
+        """
+        data = (user, chat, number,)
+        return self.db.QueryData(sql, data)
+
+    def showAllData(self, number: int) -> list[tuple]:
+        sql = """
+        SELECT ID, Message, DateTime 
+        FROM Schedule.schedule 
+        ORDER BY ID DESC 
+        LIMIT 10 OFFSET %s;
+        """
+        data = (number,)
+        return self.db.QueryData(sql, data)
+
+    def getMessageID(self, chat: int, message: int) -> list[tuple]:
+        sql = """
+        SELECT MessageID, ID
+        FROM Schedule.UserData
+        WHERE ChatID = %s
+        AND UserMessageID = %s
+        """
+        data = (chat, message,)
+        return self.db.QueryData(sql, data)
+
+    def getCopy(self, chat: int, message: int) -> list[tuple]:
+        sql = """
+        SELECT UserMessageID, ID
+        FROM Schedule.UserData
+        WHERE ChatID = %s
+        AND MessageID = %s
+        """
+        data = (chat, message,)
+        return self.db.QueryData(sql, data)
+
+    def editText(self, number: int, text: str) -> None:
+        sql = """
+        UPDATE Schedule.UserData
+        SET `Text` = %s
+        WHERE ID = %s;
+        """
+        data = (text, number,)
+        self.db.DoSqlData(sql, data)

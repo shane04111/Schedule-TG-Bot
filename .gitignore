@@ -8,6 +8,9 @@ data/schedule_data.bd
 schedule_data.db
 run.bat
 send.bat
+run.sh
+send.sh
 .env
 data/schedule.csv
 send.log
+linux_commands.md

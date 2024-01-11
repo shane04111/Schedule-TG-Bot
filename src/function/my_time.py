@@ -1,64 +1,60 @@
-from datetime import datetime
+import re
+from datetime import datetime, timezone, timedelta
 
 
-def time_datetime():
-    """
-    :return: 當前時間(datetime格式)
-    """
-    return datetime.now()
+def utcTime(zone: str = "+08:00"):
+    zone_match = re.match(r'([+-])(\d+):(\d+)', zone)
+    sign = 1 if zone_match.group(1) == '+' else -1
+    hour = zone_match.group(2)
+    minute = zone_match.group(3)
+    utc = datetime.utcnow().replace(tzinfo=timezone.utc)
+    user_time = utc.astimezone(timezone(timedelta(hours=sign * hour, minutes=sign * minute)))
 
 
-def time_date():
-    """
-    :return: 當前時間(date格式)
-    """
-    return datetime.now().date()
+def myTime():
+    now = datetime.now()
+    return Time(now)
 
 
-def time_time():
-    """
-    :return: 當前時間(time格式)
-    """
-    return datetime.now().time()
+class Time:
+    def __init__(self, now):
+        self.now = now
+        pass
 
+    def year(self):
+        return self.now.year
 
-def time_year():
-    """
-    :return: 當前年份
-    """
-    return datetime.now().year
+    def month(self):
+        return self.now.month
 
+    def day(self):
+        return self.now.day
 
-def time_month():
-    """
-    :return: 當前月份
-    """
-    return datetime.now().month
+    def hour(self):
+        return self.now.hour
 
+    def minute(self):
+        return self.now.minute
 
-def time_day():
-    """
-    :return: 當前日期
-    """
-    return datetime.now().day
+    def second(self):
+        return self.now.second
 
+    def nowTime(self):
+        return self.now.time()
 
-def time_hour():
-    """
-    :return: 當前時間
-    """
-    return datetime.now().hour
+    def date(self):
+        return self.now.date()
 
+    def week(self):
+        return self.now.weekday()
 
-def time_minute():
-    """
-    :return: 當前分鐘
-    """
-    return datetime.now().minute
-
-
-def time_second():
-    """
-    :return: 當前秒數
-    """
-    return datetime.now().second
+    def check_time(self, year: int, month: int):
+        """
+        檢查時間是否為當月
+        :param year:
+        :param month:
+        :return:
+        """
+        if year == self.year() and month == self.month():
+            return True
+        return False
