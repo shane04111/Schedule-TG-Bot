@@ -30,12 +30,12 @@ def minute_select(check_min: bool, lang):
     :return:
     """
     if check_min:
-        if myTime().second > 30:
-            minute = myTime().minute + 2
-        elif myTime().minute > 58:
+        if myTime().second() > 30:
+            minute = myTime().minute() + 2
+        elif myTime().minute() > 58:
             minute = 0
         else:
-            minute = myTime().minute + 1
+            minute = myTime().minute() + 1
     else:
         minute = 0
     result = []

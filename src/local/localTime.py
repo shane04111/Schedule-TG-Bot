@@ -1,34 +1,54 @@
+import pytz
 from telegram import InlineKeyboardMarkup, InlineKeyboardButton
+
+from src.local import utc, multiple
 
 
 class Local:
     def __init__(self):
-        self._utc = ['UTC+01:00', 'UTC+02:00', 'UTC+03:00', 'UTC+03:30', 'UTC+04:00', 'UTC+04:30', 'UTC+05:00',
-                     'UTC+05:30', 'UTC+05:45', 'UTC+06:00', 'UTC+06:30', 'UTC+07:00', 'UTC+08:00', 'UTC+09:00',
-                     'UTC+09:30', 'UTC+10:00', 'UTC+10:30', 'UTC+11:00', 'UTC+12:00', 'UTC+12:45', 'UTC+13:00',
-                     'UTC+14:00', 'UTC-09:00', 'UTC±00:00', 'UTC−01:00', 'UTC−02:00', 'UTC−03:00', 'UTC−03:30',
-                     'UTC−04:00', 'UTC−05:00', 'UTC−06:00', 'UTC−07:00', 'UTC−08:00', 'UTC−09:30', 'UTC−10:00',
-                     'UTC−11:00', 'UTC−12:00']
-        self.addUtc = ['+01:00', '+02:00', '+03:00', '+03:30', '+04:00', '+04:30', '+05:00', '+05:30', '+05:45',
-                       '+06:00', '+06:30', '+07:00', '+08:00', '+09:00', '+09:30', '+10:00', '+10:30', '+11:00',
-                       '+12:00', '+12:45', '+13:00', '+14:00', '-09:00', '00:00', '−01:00', '−02:00', '−03:00',
-                       '−03:30', '−04:00', '−05:00', '−06:00', '−07:00', '−08:00', '−09:30', '−10:00', '−11:00',
-                       '−12:00']
+        self._date = []
+        self._final = []
+        self._get = []
+        self.i = -1
 
     def button(self) -> InlineKeyboardMarkup:
-        index = 0
-        max_value = len(self._utc) - 1
-        inner_list_length = 5
-        result = []
-        i = 0
-        while index <= max_value:
-            inner_list = []
-            for j in range(inner_list_length):
-                if index > max_value:
-                    break
-                inner_list.append(InlineKeyboardButton(self._utc[index], callback_data=self.addUtc[index]))
-                index += 1
-            result.append(inner_list)
-            i += 1
-        markup = InlineKeyboardMarkup(result)
-        return markup
+        for index, date in enumerate(utc):
+            self._check(index, utc, [date, date], 4)
+            self.i += 1
+        print(self.i)
+        self.i = -1
+        results = InlineKeyboardMarkup(self._final)
+        self._final = []
+        return results
+
+    def get(self, user: str):
+        if user not in multiple:
+            return None
+        self._get_final(user)
+        return InlineKeyboardMarkup(self._final)
+
+    def _get_final(self, user: str):
+        self._get_loop(user)
+        for index, data in enumerate(self._get):
+            self._check(index, self._get, data, 5)
+            pass
+        return self
+
+    def _get_loop(self, user: str):
+        for i in pytz.all_timezones:
+            self._get_loop_check(i, user)
+
+    def _get_loop_check(self, data: str, user: str):
+        if data.split('/')[0] == user:
+            show = data.replace(data.split('/')[0] + "/", '')
+            self._get.append([show, data])
+
+    def _check(self, index, first: list, date: list[str, str], line: int):
+        self._date.append(InlineKeyboardButton(date[0], callback_data=date[1]))
+        if (index + 1) % line == 0:
+            self._final.append(self._date)
+            self._date = []
+        if len(first) - 1 == index and self._date:
+            self._final.append(self._date)
+            self._date = []
+        return self

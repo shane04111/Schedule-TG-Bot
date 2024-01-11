@@ -7,11 +7,11 @@ from sqlite3 import Error
 from telegram import Bot, Update
 from telegram.ext import ApplicationBuilder, CommandHandler, CallbackQueryHandler, MessageHandler, filters
 
-from src.function.loggr import logger, logFinal
+from src.function.logger import logger, logFinal
 from src.util.ButtonHandler import ScheduleButton
 from src.util.Commands import Commands
 from src.util.EditMessage import editMessage
-from src.util.MessageHandle import MessageHandle
+from src.util.MessageHandler import MessageHandle
 
 logger.info('logger start')
 load_dotenv()
@@ -32,17 +32,16 @@ def app():
     application.add_handler(CommandHandler(["start", "help"], command.start))
     application.add_handler(CommandHandler("default", command.default))
     application.add_handler(CommandHandler("language", command.language))
-    application.add_handler(CommandHandler("loacltime", command.localTime))
+    application.add_handler(CommandHandler("localtime", command.localTime))
     application.add_handler(CommandHandler("show", command.show))
     application.add_handler(CommandHandler("showall", command.showAll))
-    application.add_handler(CommandHandler("test", command.test))
     application.add_handler(CallbackQueryHandler(ScheduleButton))
     application.add_handler(MessageHandler(filters.UpdateType.MESSAGE, MessageHandle))
     application.add_handler(MessageHandler(filters.UpdateType.EDITED_MESSAGE, editMessage))
 
     print("機器人已上線")
     logger.info('機器人已上線')
-    application.run_polling(poll_interval=1, allowed_updates=Update.ALL_TYPES)
+    application.run_polling(allowed_updates=Update.ALL_TYPES)
 
 
 def main():

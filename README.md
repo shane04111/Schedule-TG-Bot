@@ -30,7 +30,11 @@ pip freeze > requests.txt
 .env
 ```dotenv
 TOKEN=您機器人的TOKEN
-DB=data/database.db
+HOST=資料庫連線ip
+DATABASE=資料庫位置
+DATABASE_USER=資料庫使用者帳號
+PASSWORD=資料庫使用者密碼
+DEBUG=是否顯示debug訊息
 DEV=開發者人員ID-1
 DEV1=開發者人員ID-2
 ```

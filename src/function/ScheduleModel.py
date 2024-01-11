@@ -1,6 +1,6 @@
 from src.function.SqlClass import Sql
-from src.function.loggr import logger
-from src.function.my_time import time_datetime
+from src.function.logger import logger
+from src.function.my_time import myTime
 
 DBHandler = Sql()
 
@@ -13,7 +13,7 @@ class SqlModel:
                  Message: str, UserID: int,
                  ChatID: int, Year: int,
                  Month: int, Day: int,
-                 Hour: int, Minute: int) -> None:
+                 Hour: int, Minute: int, done: bool = False) -> None:
         """
         將資料寫入資料庫中
         :param Message:     使用者輸入
@@ -24,11 +24,13 @@ class SqlModel:
         :param Day:         使用者輸入
         :param Hour:        使用者輸入
         :param Minute:      使用者輸入
+        :param done:        是否需要提醒
         :return:
         """
         self.db.insertData(
-            'Schedule.schedule', ('Message', 'UserID', 'ChatID', 'DateTime', 'UserTime'),
-            (Message, UserID, ChatID, f"{Year}-{Month}-{Day} {Hour}:{Minute}:00", time_datetime()))
+            'Schedule.schedule', ('Message', 'UserID', 'ChatID', 'DateTime', 'UserTime', 'Send'),
+            (Message, UserID, ChatID, f"{Year}-{Month}-{Day} {Hour}:{Minute}:00", myTime().now,
+             'True' if done else 'False'))
 
     def saveError(self,
                   Message: str, UserID: int,
@@ -102,7 +104,7 @@ class SqlModel:
         :param sort:
         :return:
         """
-        sql = """
+        sql = f"""
         SELECT ID, Message, DateTime 
         FROM Schedule.schedule 
         WHERE UserID = %s
@@ -146,7 +148,7 @@ class SqlModel:
         FROM Schedule.schedule 
         WHERE UserID = %s
         AND ChatID = %s
-        ORDER BY ID
+        ORDER BY ID DESC 
         LIMIT 10 OFFSET %s;
         """
         data = (user, chat, number,)
@@ -156,7 +158,7 @@ class SqlModel:
         sql = """
         SELECT ID, Message, DateTime 
         FROM Schedule.schedule 
-        ORDER BY ID
+        ORDER BY ID DESC 
         LIMIT 10 OFFSET %s;
         """
         data = (number,)

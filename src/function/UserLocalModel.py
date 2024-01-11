@@ -1,23 +1,18 @@
-import functools
-
 from src.function.ScheduleModel import DBHandler
-from src.function.loggr import logger
+from src.function.logger import logger
 
 
 class UserLocal:
-    def __init__(self, chat: int = None):
+    def __init__(self, chat: int = None, user: int = None):
         self._chat = chat
+        self._user = user
         self._setSql = []
         self._data = []
         self.Language = self._getLang()
         self.Localtime = self._getLocal()
         self.OnlyAdmin = self._getOnly()
+        self.Style = self._get_style()
         self.Check = self._check()
-
-    def user(self):
-        self._setSql.append("chatID")
-        self._data.append(self._chat)
-        return self
 
     def language(self, language: str = None):
         self._setSql.append("Language")
@@ -34,8 +29,12 @@ class UserLocal:
         self._data.append(admin)
         return self
 
+    def datePickStyle(self, style: int):
+        self._setSql.append('datePickStyle')
+        self._data.append(style)
+        return self
+
     def update(self):
-        # todo 避免sql injection
         update = ", ".join(f"{key} = %s" for key in self._setSql)
         sql = f"""
         UPDATE Schedule.UserLocal
@@ -52,7 +51,7 @@ class UserLocal:
         WHERE chatID = %s
         """
         date = DBHandler.QueryData(sql, (self._chat,))
-        return _checkData(date, 51)
+        return _checkData(date, 53)
 
     def _getOnly(self):
         sql = """
@@ -61,7 +60,7 @@ class UserLocal:
         WHERE chatID = %s
         """
         date = DBHandler.QueryData(sql, (self._chat,))
-        return _checkData(date, 61)
+        return _checkData(date, 62)
 
     def _getLocal(self):
         sql = """
@@ -70,7 +69,17 @@ class UserLocal:
         WHERE chatID = %s
         """
         date = DBHandler.QueryData(sql, (self._chat,))
-        return _checkData(date, 69)
+        return _checkData(date, 72)
+
+    def _get_style(self):
+        sql = """
+        SELECT datePickStyle
+        FROM Schedule.UserLocal
+        WHERE userID = %s
+        AND chatID = %s
+        """
+        date = DBHandler.QueryData(sql, (self._user, self._chat,))
+        return _checkData(date, 80)
 
     def _check(self):
         sql = """
@@ -84,8 +93,8 @@ class UserLocal:
         return False
 
     def initUserLocal(self, language: str = "en"):
-        sql = ('chatID', 'Language',)
-        data = (self._chat, language,)
+        sql = ('chatID', 'userID', 'Language',)
+        data = (self._chat, self._user, language,)
         DBHandler.insertData('Schedule.UserLocal', sql, data)
 
 
