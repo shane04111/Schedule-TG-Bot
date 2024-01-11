@@ -1,11 +1,11 @@
 from src.function.ScheduleModel import DBHandler
-from src.function.loggr import logger
-from src.function.my_time import time_datetime
+from src.function.logger import logger
+from src.function.my_time import myTime
 
 
 def start(user: int, chat: int, message: int, userMessage: int, text: str = None):
     columns = ('UserID', 'ChatID', 'MessageID', 'UserMessageID', 'Text', 'StartTime')
-    data = (user, chat, message, userMessage, text, time_datetime(),)
+    data = (user, chat, message, userMessage, text, myTime().now,)
     DBHandler.insertData('Schedule.UserData', columns, data)
 
 
@@ -63,7 +63,7 @@ class UserDataInsert:
     def done(self):
         self._setSql.append("CheckDone = 'True'")
         self._setSql.append(f"EndTime = %s")
-        self._data.append(time_datetime())
+        self._data.append(myTime().now)
         return self
 
     def _setData(self):
@@ -76,7 +76,6 @@ class UserDataInsert:
         return tuple(self._data)
 
     def insert(self):
-        # todo 修改成插入
         sql = f"""
         UPDATE Schedule.UserData
         SET {self._setData()} 

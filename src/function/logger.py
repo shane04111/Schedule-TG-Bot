@@ -3,7 +3,7 @@ import os
 
 from dotenv import load_dotenv
 
-from src.function.my_time import time_date
+from src.function.my_time import myTime
 
 load_dotenv()
 _FILE = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
@@ -25,11 +25,11 @@ def logInFile():
 
 def logFinal():
     log_suffix = ""
-    log_file_name = f"{_FILEPATH}/log_{time_date()}{log_suffix}.log"
+    log_file_name = f"{_FILEPATH}/log_{myTime().date()}{log_suffix}.log"
     counter = 1
     while os.path.isfile(log_file_name):
         log_suffix = f"_{counter}"
-        log_file_name = f"{_FILEPATH}/log_{time_date()}{log_suffix}.log"
+        log_file_name = f"{_FILEPATH}/log_{myTime().date()}{log_suffix}.log"
         counter += 1
     os.rename(f"{_FILEPATH}/log.log", log_file_name)
 

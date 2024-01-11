@@ -3,7 +3,7 @@ import os
 import mysql.connector
 from dotenv import load_dotenv
 
-from src.function.loggr import logger
+from src.function.logger import logger
 
 load_dotenv()
 

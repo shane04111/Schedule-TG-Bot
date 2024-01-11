@@ -8,7 +8,7 @@ from src.function.ScheduleModel import SqlModel
 from src.function.UserDataModel import start
 from src.function.UserLocalModel import UserLocal
 from src.function.deleteMessage import CreateDeleteButton, CreateRedoButton
-from src.function.loggr import logger
+from src.function.logger import logger
 from src.function.replay_markup import MarkUp
 from src.local.localTime import Local
 from src.translator.getLang import Language

@@ -4,20 +4,20 @@ import telegram
 from telegram import Update, CallbackQuery, InlineKeyboardMarkup
 from telegram.ext import ContextTypes
 
-from src.function import lg
+from src.function import lg, lc
 from src.function.ScheduleModel import SqlModel
 from src.function.UserDataModel import CheckUser, UserDataInsert
 from src.function.UserLocalModel import UserLocal
 from src.function.deleteMessage import CreateDeleteButton
 from src.function.hour_select import hour_select, convert_to_chinese_time
-from src.function.loggr import logger
+from src.function.logger import logger
 from src.function.minute_select import minute_select
 from src.function.my_time import myTime
 from src.function.replay_markup import ShowButton, MarkUp, DateSelect
+from src.local import utc
 from src.util import MessageLen, bot
 
 sql = SqlModel()
-time = myTime()
 
 
 async def ScheduleButton(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -53,13 +53,14 @@ async def ScheduleButton(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
         return
     # schedule button
     if query.data == "text_true":
-        await _date_pick(query, language, date_pick.date_pick(time.year, time.month, local.Style).final())
+        t = myTime()
+        await _date_pick(query, language, date_pick.date_pick(t.year(), t.month(), local.Style).final())
         return
     elif query.data == 'save':
         text = user_data.text
         t = myTime()
-        sql.SaveData(text, query_user_id, query_chat_id, "%04d" % t.year, "%02d" % t.month, "%02d" % t.day,
-                     "%02d" % t.hour, "%02d" % t.minute, True)
+        sql.SaveData(text, query_user_id, query_chat_id, "%04d" % t.year(), "%02d" % t.month(), "%02d" % t.day(),
+                     "%02d" % t.hour(), "%02d" % t.minute(), True)
         await _edit_message(query, lg.get("schedule.done", language))
         return
     # date pick controller
@@ -187,6 +188,9 @@ async def ScheduleButton(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
     if query.data in lg.lang:
         local.language(query.data).update()
         await _edit_message(query, lg.get("local.language.done", query.data))
+        return
+    elif query.data in utc:
+        await _edit_message(query, lg.get('local.get', language), lc.get(query.data))
         return
     # show button
     page_match = re.search(r'(\d+)-*(\d+)-(all)?nextPage(\d+)', query.data)
@@ -332,7 +336,7 @@ def _hour_check_button(key: dict, lang: str) -> InlineKeyboardMarkup:
     """
     data = CheckUser(**key)
     if data.today:
-        if data.hour == time.hour:
+        if data.hour == myTime().hour():
             set_minute_button = minute_select(True, lang)
             return set_minute_button
         set_minute_button = minute_select(False, lang)
@@ -349,11 +353,12 @@ def _hour_check_need(key: dict) -> int:
     :return:
     """
     data = CheckUser(**key)
+    t = myTime()
     if data.today:
-        if time.minute > 57:
-            set_select_hour = time.hour + 1
+        if t.minute() > 57:
+            set_select_hour = t.hour() + 1
             return set_select_hour
-        set_select_hour = time.hour
+        set_select_hour = t.hour()
         return set_select_hour
     else:
         set_select_hour = 0

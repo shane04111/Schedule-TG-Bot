@@ -1,4 +1,5 @@
 import math
+import time
 from calendar import Calendar
 from datetime import datetime
 
@@ -6,11 +7,10 @@ from telegram import InlineKeyboardButton, InlineKeyboardMarkup
 
 from src.function import lg
 from src.function.ScheduleModel import SqlModel
-from src.function.month_to_day import month_to_day
-from src.function.my_time import time_year, time_month, time_day, time_date, myTime
+from src.function.logger import logger
+from src.function.my_time import myTime
 
 sql = SqlModel()
-time = myTime()
 
 
 class Button:
@@ -62,9 +62,20 @@ class DateSelect(Button):
         self._week_callback = ["-0week", "-6week", "-5week", "-4week", "-3week", "-2week", "-1week"]
         pass
 
+    @staticmethod
+    def tick(func):
+        def wrapper(*args, **kwargs):
+            t1 = time.time()
+            result = func(*args, **kwargs)
+            t2 = time.time() - t1
+            logger.debug(f'{func.__name__} 花了 {t2} 秒運行')
+            return result
+        return wrapper
+
     def final(self):
         return InlineKeyboardMarkup(self._final_data)
 
+    @tick
     def date_pick(self, year: int, month: int, style: int):
         self._year(year, month)
         self._month(year, month)
@@ -87,6 +98,7 @@ class DateSelect(Button):
         self._final_data.append(MarkUp(self._lang).back('date_chose'))
         return self
 
+    @tick
     def select_month(self, year: int, month: int):
         self._year(year, month, 'month')
         self._save_data()
@@ -100,6 +112,7 @@ class DateSelect(Button):
         self._save_data()
         return self
 
+    @tick
     def select_year(self, year: int, month: int):
         self._month(year, month, 'year')
         self._save_data()
@@ -121,6 +134,7 @@ class DateSelect(Button):
         self._save_data()
         return self
 
+    @tick
     def year_all(self, year: int, month: int):
         for i in range(year - 70, year + 80, 10):
             self._year_all_loop(i, year, month)
@@ -221,11 +235,12 @@ def _StyleSunday(data: list[list[tuple[int, int]]], year: int, month: int, lang:
 
 
 def _pick_callback(number: int, year: int, month: int) -> str:
+    t = myTime()
     if number == 41 or number == 42:
         return _month_callback(year, month) if number == 41 else _month_callback(year, month, True)
-    elif (year > time.year or
-          (year == time.year and month > time.month) or
-          (year == time.year and month == time.month and number >= time.day)):
+    elif (year > t.year() or
+          (year == t.year() and month > t.month()) or
+          (year == t.year() and month == t.month() and number >= t.day())):
         return f"{year}/{month}/{number}date_pick"
     return 'empty'
 
@@ -299,6 +314,7 @@ class ShowButton(Button):
         self.final = math.ceil(self.number / 10)
         return self
 
+    @DateSelect.tick
     def showMark(self) -> InlineKeyboardMarkup:
         """
         按鈕按下後繼續生成對應之按鈕顯示部分
@@ -312,6 +328,18 @@ class ShowButton(Button):
             return self._firstMark()
         return self._middleMark()
 
+    @DateSelect.tick
+    def showContext(self, data: list[tuple[int, str, datetime]]) -> str:
+        lest: int = 15
+        if not data:
+            return 'error'
+        for index in data:
+            text = str(index[1]).replace("\n", " ")[:lest]
+            doc = f"{text}{'...' if len(index[1]) > lest else ''}".ljust(lest + 5)
+            self._replyText += lg.get('schedule.show.index', self.lang, index[0], doc)
+        return self._replyText
+
+    @DateSelect.tick
     def showButton(self) -> InlineKeyboardMarkup | None:
         """
         使用者輸入/show後回根據總頁數回傳按鈕顯示部分
@@ -322,6 +350,18 @@ class ShowButton(Button):
         elif self.final == 1:
             return self._oneMark()
         return self._firstMark()
+
+    def _oneMark(self) -> InlineKeyboardMarkup:
+        mark = InlineKeyboardMarkup([
+            [
+                self.create(' ', f'empty'),
+                self.create(' ', f'empty'),
+                self.create('↻', f'{self._check}{self.allText}return{self._page}'),
+                self.create(' ', f'empty'),
+                self.create(' ', f'empty')
+            ]
+        ])
+        return mark
 
     def _lestMark(self) -> InlineKeyboardMarkup:
         mark = InlineKeyboardMarkup([
@@ -358,25 +398,3 @@ class ShowButton(Button):
             ]
         ])
         return mark
-
-    def _oneMark(self) -> InlineKeyboardMarkup:
-        mark = InlineKeyboardMarkup([
-            [
-                self.create(' ', f'empty'),
-                self.create(' ', f'empty'),
-                self.create('↻', f'{self._check}{self.allText}return{self._page}'),
-                self.create(' ', f'empty'),
-                self.create(' ', f'empty')
-            ]
-        ])
-        return mark
-
-    def showContext(self, data: list[tuple[int, str, datetime]]) -> str:
-        lest: int = 15
-        if not data:
-            return 'error'
-        for index in data:
-            text = str(index[1]).replace("\n", " ")[:lest]
-            doc = f"{text}{'...' if len(index[1]) > lest else ''}".ljust(lest + 5)
-            self._replyText += lg.get('schedule.show.index', self.lang, index[0], doc)
-        return self._replyText

@@ -7,11 +7,11 @@ from sqlite3 import Error
 from telegram import Bot, Update
 from telegram.ext import ApplicationBuilder, CommandHandler, CallbackQueryHandler, MessageHandler, filters
 
-from src.function.loggr import logger, logFinal
+from src.function.logger import logger, logFinal
 from src.util.ButtonHandler import ScheduleButton
 from src.util.Commands import Commands
 from src.util.EditMessage import editMessage
-from src.util.MessageHandle import MessageHandle
+from src.util.MessageHandler import MessageHandle
 
 logger.info('logger start')
 load_dotenv()

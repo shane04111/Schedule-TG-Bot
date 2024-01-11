@@ -1,5 +1,5 @@
 from src.function.ScheduleModel import DBHandler
-from src.function.loggr import logger
+from src.function.logger import logger
 
 
 class UserLocal:
@@ -51,7 +51,7 @@ class UserLocal:
         WHERE chatID = %s
         """
         date = DBHandler.QueryData(sql, (self._chat,))
-        return _checkData(date, 51)
+        return _checkData(date, 53)
 
     def _getOnly(self):
         sql = """
@@ -60,7 +60,7 @@ class UserLocal:
         WHERE chatID = %s
         """
         date = DBHandler.QueryData(sql, (self._chat,))
-        return _checkData(date, 61)
+        return _checkData(date, 62)
 
     def _getLocal(self):
         sql = """
@@ -69,16 +69,17 @@ class UserLocal:
         WHERE chatID = %s
         """
         date = DBHandler.QueryData(sql, (self._chat,))
-        return _checkData(date, 69)
+        return _checkData(date, 72)
 
     def _get_style(self):
         sql = """
         SELECT datePickStyle
         FROM Schedule.UserLocal
         WHERE userID = %s
+        AND chatID = %s
         """
-        date = DBHandler.QueryData(sql, (self._user,))
-        return _checkData(date, 87)
+        date = DBHandler.QueryData(sql, (self._user, self._chat,))
+        return _checkData(date, 80)
 
     def _check(self):
         sql = """

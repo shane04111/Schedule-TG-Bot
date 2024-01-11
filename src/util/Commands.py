@@ -1,5 +1,4 @@
 import os
-from random import Random
 
 from dotenv import load_dotenv
 from telegram import Update, InlineKeyboardMarkup
@@ -8,9 +7,9 @@ from telegram.ext import ContextTypes
 from src.function.ScheduleModel import SqlModel
 from src.function.UserDataModel import start
 from src.function.UserLocalModel import UserLocal
-from src.function.loggr import logger
-from src.function.my_time import time_datetime, myTime
-from src.function.replay_markup import ShowButton, DateSelect
+from src.function.logger import logger
+from src.function.my_time import myTime
+from src.function.replay_markup import ShowButton
 from src.local.localTime import Local
 from src.translator.getLang import Language
 from src.util import DEV_array
@@ -72,7 +71,7 @@ class Commands:
         # Log the error before we do anything else, so we can see it even if something breaks.
         update.__dir__()
         logger.error("Telegram error ", exc_info=context.error)
-        sql.saveError(f"{time_datetime()} - ERROR - {context.error}", self._DEV_ID, self._DEV_ID)
+        sql.saveError(f"{myTime().now} - ERROR - {context.error}", self._DEV_ID, self._DEV_ID)
         return
 
     async def start(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:

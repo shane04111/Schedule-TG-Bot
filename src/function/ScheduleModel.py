@@ -1,6 +1,6 @@
 from src.function.SqlClass import Sql
-from src.function.loggr import logger
-from src.function.my_time import time_datetime
+from src.function.logger import logger
+from src.function.my_time import myTime
 
 DBHandler = Sql()
 
@@ -29,7 +29,7 @@ class SqlModel:
         """
         self.db.insertData(
             'Schedule.schedule', ('Message', 'UserID', 'ChatID', 'DateTime', 'UserTime', 'Send'),
-            (Message, UserID, ChatID, f"{Year}-{Month}-{Day} {Hour}:{Minute}:00", time_datetime(),
+            (Message, UserID, ChatID, f"{Year}-{Month}-{Day} {Hour}:{Minute}:00", myTime().now,
              'True' if done else 'False'))
 
     def saveError(self,
@@ -148,7 +148,7 @@ class SqlModel:
         FROM Schedule.schedule 
         WHERE UserID = %s
         AND ChatID = %s
-        ORDER BY ID
+        ORDER BY ID DESC 
         LIMIT 10 OFFSET %s;
         """
         data = (user, chat, number,)
@@ -158,7 +158,7 @@ class SqlModel:
         sql = """
         SELECT ID, Message, DateTime 
         FROM Schedule.schedule 
-        ORDER BY ID
+        ORDER BY ID DESC 
         LIMIT 10 OFFSET %s;
         """
         data = (number,)

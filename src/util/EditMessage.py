@@ -5,7 +5,7 @@ from telegram.ext import ContextTypes
 from src.function import lg
 from src.function.ScheduleModel import SqlModel
 from src.function.UserLocalModel import UserLocal
-from src.function.loggr import logger
+from src.function.logger import logger
 from src.function.replay_markup import MarkUp
 from src.util import MessageLen
 
